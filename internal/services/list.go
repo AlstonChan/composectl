@@ -19,18 +19,25 @@ package services
 import (
 	"os"
 	"path/filepath"
+	"sort"
 
-	"github.com/AlstonChan/composectl/internal/constants"
+	"github.com/AlstonChan/composectl/internal/config"
 )
 
-func ListAll(root string) ([]string, error) {
-	var servicePath = filepath.Join(root, constants.DockerServicesDir)
+func ListAllService(root string) ([]string, error) {
+	var servicePath = filepath.Join(root, config.DockerServicesDir)
 	var services []string
 
 	entries, err := os.ReadDir(servicePath)
 	if err != nil {
 		return nil, err
 	}
+
+	// Ensure that the directory are already sorted to have
+	// consistent sequence for the service
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name() < entries[j].Name()
+	})
 
 	for _, entry := range entries {
 		if entry.IsDir() {

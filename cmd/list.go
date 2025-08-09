@@ -19,13 +19,13 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
-	"github.com/AlstonChan/composectl/internal/constants"
+	"github.com/AlstonChan/composectl/internal/config"
+	"github.com/AlstonChan/composectl/internal/docker"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 )
-
-var repoPath string // holds --repo-path flag value
 
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -36,26 +36,44 @@ var listCmd = &cobra.Command{
 			log.Fatalf("Error resolving repo root: %v", err)
 		}
 
-		serviceList, err := services.ListAll(repoRoot)
+		serviceList, err := services.ListAllService(repoRoot)
 		if err != nil {
 			log.Fatalf("Error listing services: %v", err)
 		}
 
-		fmt.Printf("Repo root: %s\n", repoRoot)
+		fmt.Printf("Repo root: %s\n\n", repoRoot)
 		if len(serviceList) == 0 {
 			fmt.Println("No services found.")
 			return
 		}
 
-		for _, s := range serviceList {
-			running := services.IsServiceRunning(s)
-			decrypted := services.IsEnvDecrypted(fmt.Sprintf("%s/%s/%s/.env", repoRoot, constants.DockerServicesDir, s))
-			fmt.Printf(" - %-25s  Running: %-5t  Decrypted: %-5t\n", s, running, decrypted)
+		for i, s := range serviceList {
+			var sequence int = i + 1
+			var serviceDirectory string = filepath.Join(repoRoot, config.DockerServicesDir, s)
+			var serviceStatus string = "Unused"
+
+			decrypted := services.IsEnvDecrypted(fmt.Sprintf("%s/.env", serviceDirectory))
+
+			state, err := docker.GetServiceState(serviceDirectory)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			switch state {
+			case docker.Running:
+				serviceStatus = "Running"
+			case docker.PartiallyRunning:
+				serviceStatus = "Partial"
+			case docker.Stopped:
+				serviceStatus = "Stopped"
+			}
+
+			fmt.Printf("%2d - %-25s  Status: %-10s  Decrypted: %-5t\n", sequence, s, serviceStatus, decrypted)
 		}
+		fmt.Print("\n")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
-	listCmd.Flags().StringVar(&repoPath, "repo-path", "", "Path to selfhost repo (overrides binary location)")
 }

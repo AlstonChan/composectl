@@ -18,24 +18,8 @@ package services
 
 import (
 	"os"
-	"os/exec"
 	"strings"
 )
-
-func IsServiceRunning(serviceName string) bool {
-	cmd := exec.Command("docker", "ps", "--format", "{{.Names}}")
-	output, err := cmd.Output()
-	if err != nil {
-		return false
-	}
-
-	for name := range strings.SplitSeq(strings.TrimSpace(string(output)), "\n") {
-		if strings.Contains(name, serviceName) {
-			return true
-		}
-	}
-	return false
-}
 
 func IsEnvDecrypted(envPath string) bool {
 	data, err := os.ReadFile(envPath)

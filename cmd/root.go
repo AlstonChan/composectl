@@ -22,6 +22,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Specify the docker compose repository root directory path.
+// If this valid is available, it will have precedence over
+// the default path of the executable path.
+var repoPath string
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "composectl",
@@ -53,6 +58,7 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.composectl.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&repoPath, "repo-path", "r", "", "Path to selfhost repo (overrides binary location)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
