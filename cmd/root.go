@@ -25,13 +25,14 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "composectl",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "A CLI tool for managing docker compose repository with secrets",
+	Long: `This CLI tool will manage your docker compose repository of all
+services that you configured.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+composectl will list out all the services you are currently running, or
+has decrypted the secrets but not running, and service not used. You can
+quickly specify which service to run, and it will decrypt all the secret
+of each service and prompt you whenever there is a missing secret.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
