@@ -25,10 +25,10 @@ import (
 )
 
 func ListAllService(root string) ([]string, error) {
-	var servicePath = filepath.Join(root, config.DockerServicesDir)
+	var servicesPath = filepath.Join(root, config.DockerServicesDir)
 	var services []string
 
-	entries, err := os.ReadDir(servicePath)
+	entries, err := os.ReadDir(servicesPath)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func ListAllService(root string) ([]string, error) {
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			composePath := filepath.Join(servicePath, entry.Name(), "compose.yml")
+			composePath := filepath.Join(servicesPath, entry.Name(), "compose.yml")
 			if fileExists(composePath) {
 				services = append(services, entry.Name())
 			}

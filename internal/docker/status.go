@@ -85,3 +85,18 @@ func GetServiceState(projectDir string) (ServiceState, error) {
 		return Unused, nil
 	}
 }
+
+func GetServiceStatusString(state ServiceState) string {
+	switch state {
+	case Stopped:
+		return "Stopped"
+	case PartiallyRunning:
+		return "Partial"
+	case Running:
+		return "Running"
+	case Unused:
+		return "Unused"
+	default:
+		return fmt.Sprintf("ServiceState(%d)", state)
+	}
+}

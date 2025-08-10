@@ -17,8 +17,19 @@ limitations under the License.
 package services
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"strings"
+)
+
+type ServiceDecryptionStatus int
+
+const (
+	All ServiceDecryptionStatus = iota
+	Partial
+	None
+	NIL
 )
 
 func IsEnvDecrypted(envPath string) bool {
@@ -32,4 +43,63 @@ func IsEnvDecrypted(envPath string) bool {
 		return false
 	}
 	return true
+}
+
+func GetDecryptedFilesStatus(root string, serviceName string) ServiceDecryptionStatus {
+	files, err := ResolveServiceDetails(root, serviceName, true)
+	if err != nil {
+		log.Fatalf("Error resolving service's details: %v", err)
+	}
+
+	var decryptedFileCount int = 0
+	for _, file := range files {
+		if file.HasDecryptedVersion {
+			decryptedFileCount++
+		}
+	}
+
+	switch {
+	case len(files) == 0:
+		return NIL
+	case decryptedFileCount > 1 && decryptedFileCount == len(files):
+		return All
+	case decryptedFileCount > 1 && decryptedFileCount < len(files):
+		return Partial
+	case decryptedFileCount == 0:
+		return None
+	}
+
+	return None
+}
+
+func GetDecryptedStatusString(status ServiceDecryptionStatus) string {
+	switch status {
+	case All:
+		return "All"
+	case Partial:
+		return "Partial"
+	case None:
+		return "None"
+	case NIL:
+		return "NIL"
+	default:
+		return fmt.Sprintf("ServiceDecryptionStatus(%d)", status)
+	}
+}
+
+// IsEncryptedFile checks if a file path ends with ".enc" or contains ".enc" anywhere in its name.
+// It returns true if either condition is met, otherwise false.
+func IsEncryptedFile(filePath string) bool {
+	// Check if the path ends with ".enc"
+	if strings.HasSuffix(filePath, ".enc") {
+		return true
+	}
+
+	// Check if the path contains ".enc"
+	if strings.Contains(filePath, ".enc.") {
+		return true
+	}
+
+	// If neither condition is met, return false
+	return false
 }

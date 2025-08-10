@@ -37,34 +37,25 @@ type Service struct {
 }
 type ServiceOutput struct {
 	Service
-	dockerStatus string
-	decrypted    bool
+	dockerStatus  string
+	decryptStatus services.ServiceDecryptionStatus
 }
 
 func processService(channel <-chan Service, result []ServiceOutput, counter *int32, repoRoot string) {
 	for service := range channel {
 		var serviceDirectory string = filepath.Join(repoRoot, config.DockerServicesDir, service.name)
-		var serviceStatus string = "Unused"
 
-		decrypted := services.IsEnvDecrypted(fmt.Sprintf("%s/.env", serviceDirectory))
+		decryptStatus := services.GetDecryptedFilesStatus(repoRoot, service.name)
 
 		state, err := docker.GetServiceState(serviceDirectory)
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		switch state {
-		case docker.Running:
-			serviceStatus = "Running"
-		case docker.PartiallyRunning:
-			serviceStatus = "Partial"
-		case docker.Stopped:
-			serviceStatus = "Stopped"
-		}
+		var serviceStatus string = docker.GetServiceStatusString(state)
 
 		// Atomically get the next index
 		idx := atomic.AddInt32(counter, 1) - 1
-		result[idx] = ServiceOutput{dockerStatus: serviceStatus, decrypted: decrypted, Service: service}
+		result[idx] = ServiceOutput{dockerStatus: serviceStatus, decryptStatus: decryptStatus, Service: service}
 	}
 }
 
@@ -82,7 +73,6 @@ var listCmd = &cobra.Command{
 			log.Fatalf("Error listing services: %v", err)
 		}
 
-		fmt.Printf("Repo root: %s\n\n", repoRoot)
 		if len(serviceList) == 0 {
 			fmt.Println("No services found.")
 			return
@@ -120,8 +110,8 @@ var listCmd = &cobra.Command{
 
 		// Print final results
 		for _, result := range serviceOutput {
-			fmt.Printf("%2d - %-25s  Status: %-10s  Decrypted: %-5t\n",
-				result.sequence, result.name, result.dockerStatus, result.decrypted)
+			fmt.Printf("%2d - %-25s  Status: %-10s  Decrypted: %-6s\n",
+				result.sequence, result.name, result.dockerStatus, services.GetDecryptedStatusString(result.decryptStatus))
 		}
 		fmt.Print("\n")
 	},
