@@ -20,12 +20,53 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"runtime"
+	"sort"
+	"sync"
+	"sync/atomic"
 
 	"github.com/AlstonChan/composectl/internal/config"
 	"github.com/AlstonChan/composectl/internal/docker"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 )
+
+type Service struct {
+	sequence int
+	name     string
+}
+type ServiceOutput struct {
+	Service
+	dockerStatus string
+	decrypted    bool
+}
+
+func processService(channel <-chan Service, result []ServiceOutput, counter *int32, repoRoot string) {
+	for service := range channel {
+		var serviceDirectory string = filepath.Join(repoRoot, config.DockerServicesDir, service.name)
+		var serviceStatus string = "Unused"
+
+		decrypted := services.IsEnvDecrypted(fmt.Sprintf("%s/.env", serviceDirectory))
+
+		state, err := docker.GetServiceState(serviceDirectory)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		switch state {
+		case docker.Running:
+			serviceStatus = "Running"
+		case docker.PartiallyRunning:
+			serviceStatus = "Partial"
+		case docker.Stopped:
+			serviceStatus = "Stopped"
+		}
+
+		// Atomically get the next index
+		idx := atomic.AddInt32(counter, 1) - 1
+		result[idx] = ServiceOutput{dockerStatus: serviceStatus, decrypted: decrypted, Service: service}
+	}
+}
 
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -47,28 +88,40 @@ var listCmd = &cobra.Command{
 			return
 		}
 
-		for i, s := range serviceList {
-			var sequence int = i + 1
-			var serviceDirectory string = filepath.Join(repoRoot, config.DockerServicesDir, s)
-			var serviceStatus string = "Unused"
+		var serviceWg sync.WaitGroup
+		var serviceChannel chan Service = make(chan Service)
 
-			decrypted := services.IsEnvDecrypted(fmt.Sprintf("%s/.env", serviceDirectory))
+		// The output data slice with pre-occupied capacity according to the
+		// service list to avoid further dynamic allocating during service processing
+		var serviceOutput []ServiceOutput = make([]ServiceOutput, len(serviceList))
+		// Atomic counter to track the count of processed service in the serviceOutput
+		var atomicCounter int32 = 0
 
-			state, err := docker.GetServiceState(serviceDirectory)
-			if err != nil {
-				log.Fatal(err)
-			}
+		// Start worker goroutines
+		var numWorkers int = runtime.NumCPU()
+		for i := 1; i <= numWorkers; i++ {
+			serviceWg.Add(1)
+			go func() {
+				defer serviceWg.Done()
+				processService(serviceChannel, serviceOutput, &atomicCounter, repoRoot)
+			}()
+		}
 
-			switch state {
-			case docker.Running:
-				serviceStatus = "Running"
-			case docker.PartiallyRunning:
-				serviceStatus = "Partial"
-			case docker.Stopped:
-				serviceStatus = "Stopped"
-			}
+		// Populate channel with services
+		for index, service := range serviceList {
+			serviceChannel <- Service{sequence: index + 1, name: service}
+		}
+		close(serviceChannel)
+		serviceWg.Wait()
 
-			fmt.Printf("%2d - %-25s  Status: %-10s  Decrypted: %-5t\n", sequence, s, serviceStatus, decrypted)
+		sort.Slice(serviceOutput, func(i, j int) bool {
+			return serviceOutput[i].sequence < serviceOutput[j].sequence
+		})
+
+		// Print final results
+		for _, result := range serviceOutput {
+			fmt.Printf("%2d - %-25s  Status: %-10s  Decrypted: %-5t\n",
+				result.sequence, result.name, result.dockerStatus, result.decrypted)
 		}
 		fmt.Print("\n")
 	},
