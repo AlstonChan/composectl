@@ -38,6 +38,8 @@ var startsCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		fmt.Println("Command not implemented yet...")
+
 		// Show user all service for them to select which service
 		// to run. Docker status and decrypt status has to be
 		// shown
