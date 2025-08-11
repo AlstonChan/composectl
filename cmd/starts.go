@@ -33,6 +33,11 @@ var startsCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if err := deps.CheckDockerDeps(0, 2); err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
+		}
+
 		// Show user all service for them to select which service
 		// to run. Docker status and decrypt status has to be
 		// shown

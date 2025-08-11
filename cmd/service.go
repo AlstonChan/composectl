@@ -19,10 +19,12 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"slices"
 
 	"github.com/AlstonChan/composectl/internal/config"
+	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 )
@@ -38,6 +40,11 @@ var serviceCmd = &cobra.Command{
 		if name == "" && sequence <= 0 {
 			fmt.Println("Either the service name or sequence must be specified correctly!")
 			return
+		}
+
+		if err := deps.CheckDockerDeps(0, 2); err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
 		}
 
 		repoRoot, err := services.ResolveRepoRoot(repoPath)

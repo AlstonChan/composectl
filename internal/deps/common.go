@@ -17,33 +17,19 @@ limitations under the License.
 package deps
 
 import (
+	"bytes"
 	"fmt"
-	"strconv"
+	"os/exec"
 	"strings"
 )
 
-func CheckSops() error {
-	sops, err := CheckCommandExists("docker", "buildx", "version")
-	if err != nil {
-		return err
+func CheckCommandExists(cmdName string, args ...string) (string, error) {
+	cmd := exec.Command(cmdName, args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("%s not found or not executable", cmdName)
 	}
-
-	// Example output: "sops 3.10.2"
-	fields := strings.Fields(sops)
-	if len(fields) < 2 {
-		return fmt.Errorf("unexpected sops version output: %q", sops)
-	}
-
-	version := fields[1] // "3.10.2"
-	majorStr := strings.SplitN(version, ".", 2)[0]
-	major, err := strconv.Atoi(majorStr)
-	if err != nil {
-		return fmt.Errorf("failed to parse sops version: %q", version)
-	}
-
-	if major != 3 {
-		return fmt.Errorf("sops major version must be 3, found %d", major)
-	}
-
-	return nil
+	return strings.TrimSpace(out.String()), nil
 }

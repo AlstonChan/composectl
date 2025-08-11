@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -26,6 +27,7 @@ import (
 	"sync/atomic"
 
 	"github.com/AlstonChan/composectl/internal/config"
+	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 )
@@ -62,6 +64,11 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all services in the selfhost repo with status",
 	Run: func(cmd *cobra.Command, args []string) {
+		if err := deps.CheckDockerDeps(0, 2); err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
+		}
+
 		repoRoot, err := services.ResolveRepoRoot(repoPath)
 		if err != nil {
 			log.Fatalf("Error resolving repo root: %v", err)
