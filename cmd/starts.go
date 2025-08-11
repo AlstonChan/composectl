@@ -17,6 +17,10 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +28,11 @@ var startsCmd = &cobra.Command{
 	Use:   "starts",
 	Short: "Starts a interactive session for starting service",
 	Run: func(cmd *cobra.Command, args []string) {
+		if err := deps.CheckSops(); err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
+		}
+
 		// Show user all service for them to select which service
 		// to run. Docker status and decrypt status has to be
 		// shown

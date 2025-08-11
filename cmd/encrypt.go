@@ -18,7 +18,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +31,11 @@ var encryptCmd = &cobra.Command{
 		name, _ := cmd.Flags().GetString("name")
 		sequence, _ := cmd.Flags().GetInt("sequence")
 		file, _ := cmd.Flags().GetString("file")
+
+		if err := deps.CheckSops(); err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
+		}
 
 		fmt.Printf("encrypt: name - %s, sequence - %d, file - %s", name, sequence, file)
 	},

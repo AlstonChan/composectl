@@ -18,7 +18,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +40,11 @@ var decryptCmd = &cobra.Command{
 
 		decryptAll, _ := cmd.Flags().GetBool("decrypt-all")
 		index, _ := cmd.Flags().GetInt("index")
+
+		if err := deps.CheckSops(); err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
+		}
 
 		fmt.Printf("decrypt: name - %s, sequence - %d, decrypt-all - %t, index - %d", name, sequence, decryptAll, index)
 	},
