@@ -26,7 +26,6 @@ import (
 	"sync/atomic"
 
 	"github.com/AlstonChan/composectl/internal/config"
-	"github.com/AlstonChan/composectl/internal/docker"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 )
@@ -47,11 +46,11 @@ func processService(channel <-chan Service, result []ServiceOutput, counter *int
 
 		decryptStatus := services.GetDecryptedFilesStatus(repoRoot, service.name)
 
-		state, err := docker.GetServiceState(serviceDirectory)
+		state, err := services.GetServiceState(serviceDirectory)
 		if err != nil {
 			log.Fatal(err)
 		}
-		var serviceStatus string = docker.GetServiceStatusString(state)
+		var serviceStatus string = services.GetServiceStatusString(state)
 
 		// Atomically get the next index
 		idx := atomic.AddInt32(counter, 1) - 1

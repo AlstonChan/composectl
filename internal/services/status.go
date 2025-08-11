@@ -17,13 +17,16 @@ limitations under the License.
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
-	"os"
+	"os/exec"
 	"strings"
 )
 
 type ServiceDecryptionStatus int
+type ServiceState int
 
 const (
 	All ServiceDecryptionStatus = iota
@@ -32,17 +35,80 @@ const (
 	NIL
 )
 
-func IsEnvDecrypted(envPath string) bool {
-	data, err := os.ReadFile(envPath)
+const (
+	Stopped ServiceState = iota
+	PartiallyRunning
+	Running
+	Unused
+)
+
+type composeService struct {
+	Name   string `json:"Service"`
+	Status string `json:"State"`
+}
+
+func GetServiceState(projectDir string) (ServiceState, error) {
+	cmd := exec.Command("docker", "compose", "ps", "--format", "json")
+	cmd.Dir = projectDir
+
+	out, err := cmd.Output()
 	if err != nil {
-		return false // missing file means not decrypted
+		return Unused, nil
 	}
 
-	// crude check: SOPS-encrypted env usually starts with "ENC[" or has sops metadata
-	if strings.Contains(string(data), "sops") || strings.Contains(string(data), "ENC[") {
-		return false
+	// docker compose ps returns nothing when there are
+	// no containers at any status.
+	if len(out) == 0 {
+		return Unused, nil
 	}
-	return true
+
+	var services []composeService
+
+	// Use a decoder to read (multiple) JSON objects in sequence
+	dec := json.NewDecoder(bytes.NewReader(out))
+	for dec.More() {
+		var container composeService
+		if err := dec.Decode(&container); err != nil {
+			fmt.Println("Error decoding docker compose ps (json) output:", err)
+			return Stopped, err
+		}
+		services = append(services, container)
+	}
+
+	if len(services) == 0 {
+		return Stopped, nil
+	}
+
+	runningCount := 0
+	for _, svc := range services {
+		if svc.Status == "running" {
+			runningCount++
+		}
+	}
+
+	switch {
+	case runningCount == len(services):
+		return Running, nil
+	case runningCount > 0:
+		return PartiallyRunning, nil
+	default:
+		return Unused, nil
+	}
+}
+
+func GetServiceStatusString(state ServiceState) string {
+	switch state {
+	case Stopped:
+		return "Stopped"
+	case PartiallyRunning:
+		return "Partial"
+	case Running:
+		return "Running"
+	case Unused:
+		return "Unused"
+	default:
+		return fmt.Sprintf("ServiceState(%d)", state)
+	}
 }
 
 func GetDecryptedFilesStatus(root string, serviceName string) ServiceDecryptionStatus {

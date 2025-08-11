@@ -23,7 +23,6 @@ import (
 	"slices"
 
 	"github.com/AlstonChan/composectl/internal/config"
-	"github.com/AlstonChan/composectl/internal/docker"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 )
@@ -84,12 +83,12 @@ var serviceCmd = &cobra.Command{
 		decryptStatus := services.GetDecryptedFilesStatus(repoRoot, name)
 
 		var serviceDirectory string = filepath.Join(repoRoot, config.DockerServicesDir, name)
-		state, err := docker.GetServiceState(serviceDirectory)
+		state, err := services.GetServiceState(serviceDirectory)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("Docker status: %s\n", docker.GetServiceStatusString(state))
+		fmt.Printf("Docker status: %s\n", services.GetServiceStatusString(state))
 		fmt.Printf("Decryption status: %s\n\n", services.GetDecryptedStatusString(decryptStatus))
 
 		// List files
