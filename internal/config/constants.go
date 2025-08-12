@@ -18,5 +18,6 @@ package config
 
 const (
 	DockerServicesDir = "docker_services"
-	LocalConfigDir    = ".local"
+	LocalConfigDir    = ".composectl"
+	RepoPathEnv       = "COMPOSECTL_ROOT_DIR"
 )

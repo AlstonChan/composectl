@@ -20,6 +20,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/AlstonChan/composectl/internal/config"
+	"github.com/spf13/viper"
 )
 
 // Priority: CLI flag > env var > binary dir
@@ -28,18 +32,18 @@ func ResolveRepoRoot(cliPath string) (string, error) {
 		return verifyRepoRoot(cliPath)
 	}
 
-	if envPath := os.Getenv("MYCLI_REPO_PATH"); envPath != "" {
+	if envPath := os.Getenv(config.RepoPathEnv); envPath != "" {
 		return verifyRepoRoot(envPath)
 	}
 
-	exeDir, err := getExecutableDir()
+	exeDir, err := GetExecutableDir()
 	if err != nil {
 		return "", err
 	}
 	return verifyRepoRoot(exeDir)
 }
 
-func getExecutableDir() (string, error) {
+func GetExecutableDir() (string, error) {
 	exePath, err := os.Executable()
 	if err != nil {
 		return "", err
@@ -59,4 +63,48 @@ func verifyRepoRoot(path string) (string, error) {
 		return "", fmt.Errorf("not a valid selfhost repo root at %s (missing docker_services)", path)
 	}
 	return path, nil
+}
+
+func CreateLocalCacheDir(path string) (string, error) {
+	// use default path if empty
+	if path == "" {
+		var exePath, err = GetExecutableDir()
+		if err != nil {
+			return "", err
+		}
+		path = exePath
+	}
+
+	if !strings.HasSuffix(path, config.LocalConfigDir) {
+		path = filepath.Join(path, config.LocalConfigDir)
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			os.MkdirAll(path, 0755)
+		} else {
+			return "", err
+		}
+	}
+
+	viper.AddConfigPath(path)
+	initConfig()
+
+	return path, nil
+}
+
+func initConfig() {
+	viper.SetConfigType("yaml")
+	viper.SetConfigName("config")
+
+	// Create file if missing
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			if err := viper.SafeWriteConfig(); err != nil && !os.IsExist(err) {
+				fmt.Println("Error creating config file:", err)
+			}
+		} else {
+			fmt.Println("Error reading config file:", err)
+		}
+	}
 }

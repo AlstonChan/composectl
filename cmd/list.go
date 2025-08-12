@@ -30,6 +30,7 @@ import (
 	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type Service struct {
@@ -67,6 +68,13 @@ var listCmd = &cobra.Command{
 		if err := deps.CheckDockerDeps(0, 2); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
 			os.Exit(1)
+		}
+
+		if repoPath == "" {
+			services.CreateLocalCacheDir(os.Getenv("COMPOSECTL_LOCAL"))
+			if val := viper.GetString("repo-path"); val != "" {
+				repoPath = val
+			}
 		}
 
 		repoRoot, err := services.ResolveRepoRoot(repoPath)

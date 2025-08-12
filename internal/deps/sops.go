@@ -23,7 +23,7 @@ import (
 )
 
 func CheckSops() error {
-	sops, err := CheckCommandExists("docker", "buildx", "version")
+	sops, err := CheckCommandExists("sops", "--version")
 	if err != nil {
 		return err
 	}

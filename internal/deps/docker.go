@@ -25,8 +25,8 @@ import (
 
 func parseMajorVersion(output string) (int, error) {
 	// Extract first number group from output (e.g., "v0.26.1" → 0)
-	fields := strings.Fields(output)
-	for _, f := range fields {
+	fields := strings.FieldsSeq(output)
+	for f := range fields {
 		ver := strings.TrimPrefix(f, "v")
 		if parts := strings.Split(ver, "."); len(parts) > 0 {
 			if major, err := strconv.Atoi(parts[0]); err == nil {
