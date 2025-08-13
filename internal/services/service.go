@@ -17,10 +17,14 @@ limitations under the License.
 package services
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/AlstonChan/composectl/internal/config"
@@ -29,9 +33,10 @@ import (
 type ServiceFile struct {
 	Filename            string
 	HasDecryptedVersion bool
+	IsSecrets           bool
 }
 
-func ResolveServiceDetails(root string, serviceName string, secretsOnly bool) ([]ServiceFile, error) {
+func ResolveServiceFiles(root string, serviceName string, secretsOnly bool) ([]ServiceFile, error) {
 	var servicePath = filepath.Join(root, config.DockerServicesDir, serviceName)
 
 	// Recursively search the directory for secrets
@@ -50,7 +55,8 @@ func ResolveServiceDetails(root string, serviceName string, secretsOnly bool) ([
 		}
 
 		var hasDecryptedVersion bool = false
-		if IsEncryptedFile(path) {
+		var isEncryptedFile bool = IsEncryptedFile(path)
+		if isEncryptedFile {
 			var decryptedFilename = strings.ReplaceAll(path, ".enc", "")
 			_, err := os.Stat(decryptedFilename)
 			if err == nil {
@@ -58,7 +64,7 @@ func ResolveServiceDetails(root string, serviceName string, secretsOnly bool) ([
 			}
 		}
 
-		if secretsOnly && !IsEncryptedFile(path) {
+		if secretsOnly && !isEncryptedFile {
 			return nil
 		}
 
@@ -71,7 +77,7 @@ func ResolveServiceDetails(root string, serviceName string, secretsOnly bool) ([
 			return fmt.Errorf("could not get relative path for %s: %w", path, err)
 		}
 
-		files = append(files, ServiceFile{Filename: relativePath, HasDecryptedVersion: hasDecryptedVersion})
+		files = append(files, ServiceFile{Filename: relativePath, HasDecryptedVersion: hasDecryptedVersion, IsSecrets: isEncryptedFile})
 		return nil
 	})
 
@@ -79,9 +85,43 @@ func ResolveServiceDetails(root string, serviceName string, secretsOnly bool) ([
 		return nil, fmt.Errorf("error walking the path %s: %w", servicePath, err)
 	}
 
+	// This is very important as the index of the file will
+	// be used by other command to perform action on file index
 	sortByDepth(files)
 
 	return files, nil
+}
+
+func ValidateService(repoRoot string, sequence *int, name *string) ([]string, error) {
+	serviceList, err := ListAllService(repoRoot)
+	if err != nil {
+		log.Fatalf("Error listing services: %v", err)
+	}
+
+	if len(serviceList) == 0 {
+		if *sequence >= 1 {
+			fmt.Printf("Service with sequence %d not found", *sequence)
+		} else if *name != "" {
+			fmt.Printf("Service with name %s not found", *name)
+		}
+		return nil, nil
+	}
+
+	// Check if service specified exists
+	if *sequence >= 1 {
+		if len(serviceList) < *sequence {
+			return nil, errors.New("Service with sequence " + strconv.Itoa(*sequence) + " not found")
+		}
+		*name = serviceList[(*sequence)-1]
+	} else if *name != "" {
+		var serviceIndex int = slices.IndexFunc(serviceList, func(s string) bool { return s == *name })
+		if serviceIndex == -1 {
+			return nil, errors.New("Service with name \"" + *name + "\" not found")
+		}
+		*sequence = serviceIndex + 1
+	}
+
+	return serviceList, nil
 }
 
 // sortByDepth sorts a slice of file paths in place by the number of

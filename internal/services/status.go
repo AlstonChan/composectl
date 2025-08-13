@@ -112,7 +112,7 @@ func GetServiceStatusString(state ServiceState) string {
 }
 
 func GetDecryptedFilesStatus(root string, serviceName string) ServiceDecryptionStatus {
-	files, err := ResolveServiceDetails(root, serviceName, true)
+	files, err := ResolveServiceFiles(root, serviceName, true)
 	if err != nil {
 		log.Fatalf("Error resolving service's details: %v", err)
 	}

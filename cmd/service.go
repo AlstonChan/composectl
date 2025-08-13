@@ -21,7 +21,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"slices"
 
 	"github.com/AlstonChan/composectl/internal/config"
 	"github.com/AlstonChan/composectl/internal/deps"
@@ -60,34 +59,13 @@ var serviceCmd = &cobra.Command{
 			log.Fatalf("Error resolving repo root: %v", err)
 		}
 
-		serviceList, err := services.ListAllService(repoRoot)
+		serviceLists, err := services.ValidateService(repoRoot, &sequence, &name)
 		if err != nil {
-			log.Fatalf("Error listing services: %v", err)
+			fmt.Println(err.Error())
 		}
 
-		if len(serviceList) == 0 {
-			if sequence >= 1 {
-				fmt.Printf("Service with sequence %d not found", sequence)
-			} else if name != "" {
-				fmt.Printf("Service with name %s not found", name)
-			}
+		if serviceLists == nil && err == nil {
 			return
-		}
-
-		// Check if service specified exists
-		if sequence >= 1 {
-			if len(serviceList) < sequence {
-				fmt.Printf("Service with sequence %d not found", sequence)
-				return
-			}
-			name = serviceList[sequence-1]
-		} else if name != "" {
-			var serviceIndex int = slices.IndexFunc(serviceList, func(s string) bool { return s == name })
-			if serviceIndex == -1 {
-				fmt.Printf("Service with name \"%s\" not found", name)
-				return
-			}
-			sequence = serviceIndex + 1
 		}
 
 		// Main Info
@@ -107,7 +85,7 @@ var serviceCmd = &cobra.Command{
 		fmt.Printf("Decryption status: %s\n\n", services.GetDecryptedStatusString(decryptStatus))
 
 		// List files
-		files, err := services.ResolveServiceDetails(repoRoot, name, !includeAllFiles)
+		files, err := services.ResolveServiceFiles(repoRoot, name, !includeAllFiles)
 		if err != nil {
 			log.Fatalf("Error resolving service's details: %v", err)
 		}
@@ -117,8 +95,16 @@ var serviceCmd = &cobra.Command{
 		} else {
 			fmt.Printf("All %s service secrets\n", name)
 		}
+
+		var secretCount int = 1
 		for _, file := range files {
-			fmt.Printf("- %s", file.Filename)
+			if file.IsSecrets {
+				fmt.Printf("%2d. %s", secretCount, file.Filename)
+				secretCount++
+			} else {
+				fmt.Printf("--- %s", file.Filename)
+			}
+
 			if file.HasDecryptedVersion {
 				fmt.Printf(" (has decrypted version)")
 			}

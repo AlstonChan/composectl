@@ -18,10 +18,13 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/AlstonChan/composectl/internal/deps"
+	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var decryptCmd = &cobra.Command{
@@ -41,12 +44,49 @@ var decryptCmd = &cobra.Command{
 		decryptAll, _ := cmd.Flags().GetBool("decrypt-all")
 		index, _ := cmd.Flags().GetInt("index")
 
+		if name == "" && sequence <= 0 {
+			fmt.Println("Either the service name or sequence must be specified correctly!")
+			return
+		}
+
+		if !decryptAll && index <= 0 {
+			fmt.Println("You have to specify an index to decrypt or use \"-a\" to decrypt all secrets")
+			return
+		}
+
 		if err := deps.CheckSops(); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("decrypt: name - %s, sequence - %d, decrypt-all - %t, index - %d", name, sequence, decryptAll, index)
+		if repoPath == "" {
+			services.CreateLocalCacheDir(os.Getenv("COMPOSECTL_LOCAL"))
+			if val := viper.GetString("repo-path"); val != "" {
+				repoPath = val
+			}
+		}
+
+		repoRoot, err := services.ResolveRepoRoot(repoPath)
+		if err != nil {
+			log.Fatalf("Error resolving repo root: %v", err)
+		}
+
+		serviceLists, err := services.ValidateService(repoRoot, &sequence, &name)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
+		// Service does not exists
+		if serviceLists == nil && err == nil {
+			return
+		}
+
+		err = services.DecryptFile(repoRoot, name, index)
+		if err != nil {
+			fmt.Printf("Unable to decrypt file %s: %v", name, err)
+			return
+		}
 	},
 }
 
