@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
@@ -81,6 +82,23 @@ var setCmd = &cobra.Command{
 				}
 
 				fmt.Printf("Repo root set to %s\n", absPath)
+			case strings.HasPrefix(argument, "age-pubkey"):
+				parts := strings.SplitN(argument, "=", 2) // Split into key and value
+				if len(parts) != 2 {
+					errorString = "invalid format, expected key=value"
+					break
+				}
+
+				key := parts[0]
+				value := parts[1]
+
+				if utf8.RuneCountInString(value) != 62 {
+					fmt.Printf("The public key provided is invalid")
+					return
+				}
+				viper.Set(key, value)
+
+				fmt.Printf("Age public key set to %s\n", value)
 			default:
 				errorString = "Configuration not recognized: " + argument
 			}
