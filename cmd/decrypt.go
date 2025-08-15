@@ -82,10 +82,34 @@ var decryptCmd = &cobra.Command{
 			return
 		}
 
-		err = services.DecryptFile(repoRoot, name, index)
-		if err != nil {
-			fmt.Printf("Unable to decrypt file %s: %v", name, err)
-			return
+		if decryptAll {
+			err = services.DecrypAllFile(repoRoot, name)
+			if err != nil {
+				fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
+				return
+			}
+		} else {
+			files, err := services.ResolveServiceFiles(repoRoot, name, true)
+			if err != nil {
+				fmt.Printf("error resolving service's details: %v", err)
+				return
+			}
+
+			if len(files) == 0 {
+				fmt.Printf("this service does not have any file to decrypt")
+				return
+			}
+
+			if index < 0 || index > len(files) || files[index] == (services.ServiceFile{}) {
+				fmt.Printf("the file given index %d does not exists", index)
+				return
+			}
+
+			err = services.DecryptFile(repoRoot, name, index, files[index-1])
+			if err != nil {
+				fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
+				return
+			}
 		}
 	},
 }

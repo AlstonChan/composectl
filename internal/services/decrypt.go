@@ -27,33 +27,40 @@ import (
 	"github.com/AlstonChan/composectl/internal/config"
 )
 
-func DecryptFile(repoRoot string, name string, index int) error {
+func DecrypAllFile(repoRoot string, name string) error {
 	files, err := ResolveServiceFiles(repoRoot, name, true)
 	if err != nil {
 		return fmt.Errorf("error resolving service's details: %v", err)
 	}
 
-	if index < 0 || index > len(files) || files[index] == (ServiceFile{}) {
-		return fmt.Errorf("the file given index %d does not exists", index)
+	if len(files) == 0 {
+		return fmt.Errorf("this service does not have any file to decrypt")
 	}
 
+	for index, file := range files {
+		DecryptFile(repoRoot, name, index+1, file)
+	}
+
+	return nil
+}
+
+func DecryptFile(repoRoot string, name string, index int, file ServiceFile) error {
 	var servicePath string = filepath.Join(repoRoot, config.DockerServicesDir, name)
-	var file ServiceFile = files[index-1]
 	var targetFilePath string = filepath.Join(servicePath, file.Filename)
 
-	_, err = os.Stat(targetFilePath)
+	_, err := os.Stat(targetFilePath)
 	if err != nil {
 		return fmt.Errorf("the file given index %d cannot be found at %s", index, targetFilePath)
 	}
 
-	fileExtension, filename := parseEncFilename(targetFilePath, file.Filename)
+	fileType, filename := parseEncFilename(targetFilePath, file.Filename)
 
 	actualFilePath, err := filepath.Abs(targetFilePath)
 	if err != nil {
 		return err
 	}
 
-	var cmd = exec.Command("sops", "--input-type", fileExtension, "--output-type", fileExtension,
+	var cmd = exec.Command("sops", "--input-type", fileType, "--output-type", fileType,
 		"-d", actualFilePath)
 
 	if out, err := cmd.Output(); err != nil {
@@ -93,32 +100,32 @@ func DecryptFile(repoRoot string, name string, index int) error {
 	return nil
 }
 
-func parseEncFilename(targetFilePath string, file string) (fileExtension string, decryptedFilename string) {
+func parseEncFilename(targetFilePath string, file string) (fileType string, decryptedFilename string) {
 	switch {
 	case strings.HasSuffix(targetFilePath, ".env.enc"):
-		fileExtension = "env"
-		decryptedFilename = strings.TrimSuffix(file, ".yml")
+		fileType = "dotenv"
+		decryptedFilename = strings.TrimSuffix(file, ".enc")
 
 	case strings.HasSuffix(targetFilePath, ".enc.yml"):
-		fileExtension = "yaml"
+		fileType = "yaml"
 		decryptedFilename = strings.TrimSuffix(file, ".enc.yml") + ".yml"
 	case strings.HasSuffix(targetFilePath, ".enc.yaml"):
-		fileExtension = "yaml"
+		fileType = "yaml"
 		decryptedFilename = strings.TrimSuffix(file, ".enc.yaml") + ".yaml"
 	case strings.HasSuffix(targetFilePath, ".yml.enc"):
-		fileExtension = "yaml"
+		fileType = "yaml"
 		decryptedFilename = strings.TrimSuffix(file, ".yml.enc") + ".yml"
 	case strings.HasSuffix(targetFilePath, ".yaml.enc"):
-		fileExtension = "yaml"
+		fileType = "yaml"
 		decryptedFilename = strings.TrimSuffix(file, ".yaml.enc") + ".yaml"
 
 	case strings.HasSuffix(targetFilePath, ".enc.toml"):
-		fileExtension = "toml"
+		fileType = "toml"
 		decryptedFilename = strings.TrimSuffix(file, ".enc.toml") + ".toml"
 	case strings.HasSuffix(targetFilePath, ".toml.enc"):
-		fileExtension = "toml"
+		fileType = "toml"
 		decryptedFilename = strings.TrimSuffix(file, ".toml.enc") + ".toml"
 	}
 
-	return fileExtension, decryptedFilename
+	return fileType, decryptedFilename
 }
