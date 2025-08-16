@@ -127,9 +127,9 @@ func GetDecryptedFilesStatus(root string, serviceName string) ServiceDecryptionS
 	switch {
 	case len(files) == 0:
 		return NIL
-	case decryptedFileCount > 1 && decryptedFileCount == len(files):
+	case decryptedFileCount >= 1 && decryptedFileCount == len(files):
 		return All
-	case decryptedFileCount > 1 && decryptedFileCount < len(files):
+	case decryptedFileCount >= 1 && decryptedFileCount < len(files):
 		return Partial
 	case decryptedFileCount == 0:
 		return None
