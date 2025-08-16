@@ -125,6 +125,13 @@ func parseEncFilename(targetFilePath string, file string) (fileType string, decr
 	case strings.HasSuffix(targetFilePath, ".toml.enc"):
 		fileType = "toml"
 		decryptedFilename = strings.TrimSuffix(file, ".toml.enc") + ".toml"
+
+	case strings.HasSuffix(targetFilePath, ".enc.json"):
+		fileType = "json"
+		decryptedFilename = strings.TrimSuffix(file, ".enc.json") + ".json"
+	case strings.HasSuffix(targetFilePath, ".json.enc"):
+		fileType = "json"
+		decryptedFilename = strings.TrimSuffix(file, ".json.enc") + ".json"
 	}
 
 	return fileType, decryptedFilename
