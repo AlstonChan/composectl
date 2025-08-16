@@ -65,11 +65,11 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile) erro
 
 	if out, err := cmd.Output(); err != nil {
 		if err.Error() == "exit status 128" {
-			userDir, err := os.UserHomeDir()
-			if err != nil {
+			userDir, userDirErr := os.UserHomeDir()
+			if userDirErr != nil {
 				fmt.Println("Unable to access user directory")
 			} else {
-				fmt.Printf("Missing age key at %s/.config/sops/age/keys.txt", userDir)
+				fmt.Printf("Missing age key at %s/.config/sops/age/keys.txt:", userDir)
 			}
 		} else {
 			fmt.Println("Unable to decrypt file:", err, cmd)

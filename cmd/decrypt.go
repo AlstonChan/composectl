@@ -101,7 +101,7 @@ var decryptCmd = &cobra.Command{
 				return
 			}
 
-			if index < 0 || index > len(files) || files[index] == (services.ServiceFile{}) {
+			if index < 0 || index > len(files) || files[index-1] == (services.ServiceFile{}) {
 				fmt.Printf("the file given index %d does not exists", index)
 				return
 			}
