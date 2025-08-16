@@ -24,7 +24,7 @@ A simple command line tool for a docker compose repository to track running/decr
 
 4. Run `./composectl` to see the output
 
-## Contrubuiting
+## Contributing
 
 To develop this application locally:
 

@@ -84,7 +84,7 @@ var decryptCmd = &cobra.Command{
 		}
 
 		if decryptAll {
-			err = services.DecrypAllFile(repoRoot, name)
+			err = services.DecryptAllFile(repoRoot, name)
 			if err != nil {
 				fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
 				return

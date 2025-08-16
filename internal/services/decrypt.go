@@ -27,7 +27,7 @@ import (
 	"github.com/AlstonChan/composectl/internal/config"
 )
 
-func DecrypAllFile(repoRoot string, name string) error {
+func DecryptAllFile(repoRoot string, name string) error {
 	files, err := ResolveServiceFiles(repoRoot, name, true)
 	if err != nil {
 		return fmt.Errorf("error resolving service's details: %v", err)
