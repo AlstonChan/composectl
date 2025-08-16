@@ -63,7 +63,7 @@ func processService(channel <-chan Service, result []ServiceOutput, counter *int
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all services in the selfhost repo with status",
+	Short: "List all services in the self-host repo with status",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := deps.CheckDockerDeps(0, 2); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
@@ -71,7 +71,7 @@ var listCmd = &cobra.Command{
 		}
 
 		if repoPath == "" {
-			services.CreateLocalCacheDir(os.Getenv("COMPOSECTL_LOCAL"))
+			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 			if val := viper.GetString("repo-path"); val != "" {
 				repoPath = val
 			}

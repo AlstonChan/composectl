@@ -51,7 +51,7 @@ var encryptCmd = &cobra.Command{
 		}
 
 		if repoPath == "" {
-			services.CreateLocalCacheDir(os.Getenv("COMPOSECTL_LOCAL"))
+			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 			if val := viper.GetString("repo-path"); val != "" {
 				repoPath = val
 			}
@@ -72,7 +72,7 @@ var encryptCmd = &cobra.Command{
 		}
 
 		if publicKey == "" {
-			services.CreateLocalCacheDir(os.Getenv("COMPOSECTL_LOCAL"))
+			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 			if val := viper.GetString("age-pubkey"); val != "" {
 				publicKey = val
 			} else {

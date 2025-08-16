@@ -21,6 +21,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/AlstonChan/composectl/internal/config"
 	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
@@ -60,7 +61,7 @@ var decryptCmd = &cobra.Command{
 		}
 
 		if repoPath == "" {
-			services.CreateLocalCacheDir(os.Getenv("COMPOSECTL_LOCAL"))
+			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 			if val := viper.GetString("repo-path"); val != "" {
 				repoPath = val
 			}

@@ -93,6 +93,12 @@ func GetPublicKeyFromDefaultLocation() (string, error) {
 
 			publicKey, pubError = extractPublicKey(userDir + "/.config/sops/age/keys.txt")
 		}
+	case "windows":
+		appDataPath := os.Getenv("APPDATA")
+		if appDataPath == "" {
+			return "", fmt.Errorf("unable to determine APPDATA directory to locate keys.txt")
+		}
+		publicKey, pubError = extractPublicKey(appDataPath + "\\sops\\age\\keys.txt")
 	}
 
 	return publicKey, pubError

@@ -24,6 +24,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/AlstonChan/composectl/internal/config"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -32,22 +33,24 @@ import (
 var setCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Set the configuration of the application",
-	Long: `Set the configuration of the CLI application so
-	that it will remember the next time you execute a 
-	command.
-	
-	It will create a .composectl directory which SHOULD be 
-	git ignored. 
-	
-	The .composectl directory will be created besides the
-	executable unless the COMPOSECTL_LOCAL env is set to
-	the path of the .composectl directory`,
+	Long: strings.ReplaceAll(
+		`Set the configuration of the CLI application so
+that it will remember the next time you execute a 
+command.
+
+It will create a .composectl directory which SHOULD be 
+git ignored. 
+
+The .composectl directory will be created besides the
+executable unless the CONFIG_DIR_ENV env is set to
+the path of the .composectl directory`,
+		"CONFIG_DIR_ENV", config.ConfigDirEnv),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			fmt.Println("Specify the flags to configure the application")
 		}
 
-		services.CreateLocalCacheDir(os.Getenv("COMPOSECTL_LOCAL"))
+		services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 
 		var errorString string = ""
 		for _, argument := range args {
