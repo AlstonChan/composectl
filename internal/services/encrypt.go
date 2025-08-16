@@ -24,11 +24,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
-
-const SopsAgePublicKey = "SOPS_AGE_KEY_FILE"
 
 func EncryptFile(targetFile string, publicKey string, overwrite bool) error {
 	var encryptedFile string = targetFile + ".enc"
@@ -64,44 +61,11 @@ func EncryptFile(targetFile string, publicKey string, overwrite bool) error {
 }
 
 func GetPublicKeyFromDefaultLocation() (string, error) {
-	var publicKey string
-	var pubError error
-
-	keysPath := os.Getenv(SopsAgePublicKey)
-	if keysPath != "" {
-		_, err := os.Stat(keysPath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				fmt.Printf("keys.txt does not found from the path specified by %s\n", SopsAgePublicKey)
-			}
-			fmt.Printf("Unable to extract public key from the path specified by %s\n", SopsAgePublicKey)
-		} else {
-			publicKey, pubError = extractPublicKey(keysPath)
-		}
+	keysPath, err := GetSopsAgeKeyPath()
+	if err != nil {
+		return "", fmt.Errorf("error getting sops age key path: %v", err)
 	}
-
-	switch runtime.GOOS {
-	case "linux":
-		configPath := os.Getenv("XDG_CONFIG_HOME")
-		if configPath != "" {
-			publicKey, pubError = extractPublicKey(configPath + "/.config/sops/age/keys.txt")
-		} else {
-			userDir, error := os.UserHomeDir()
-			if error != nil {
-				return "", fmt.Errorf("unable to determine $HOME directory to locate keys.txt")
-			}
-
-			publicKey, pubError = extractPublicKey(userDir + "/.config/sops/age/keys.txt")
-		}
-	case "windows":
-		appDataPath := os.Getenv("APPDATA")
-		if appDataPath == "" {
-			return "", fmt.Errorf("unable to determine APPDATA directory to locate keys.txt")
-		}
-		publicKey, pubError = extractPublicKey(appDataPath + "\\sops\\age\\keys.txt")
-	}
-
-	return publicKey, pubError
+	return extractPublicKey(keysPath)
 }
 
 func extractPublicKey(path string) (string, error) {

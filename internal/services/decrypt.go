@@ -63,17 +63,20 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile) erro
 	var cmd = exec.Command("sops", "--input-type", fileType, "--output-type", fileType,
 		"-d", actualFilePath)
 
+	if _, err := GetSopsAgeKeyPath(); err != nil {
+		return fmt.Errorf("%v", err)
+	}
+
+	if lineEnding, err := DetectLineEnding(actualFilePath); err != nil {
+		return fmt.Errorf("error detecting line ending: %v", err)
+	} else if lineEnding == CRLF {
+		return fmt.Errorf("sops does not support decrypting files with CRLF line endings, please convert it to LF line endings first")
+	} else if lineEnding == Unknown {
+		fmt.Printf("Warning: the line ending of %s is unknown, it may not be decrypted correctly\n", actualFilePath)
+	}
+
 	if out, err := cmd.Output(); err != nil {
-		if err.Error() == "exit status 128" {
-			userDir, userDirErr := os.UserHomeDir()
-			if userDirErr != nil {
-				fmt.Println("Unable to access user directory")
-			} else {
-				fmt.Printf("Missing age key at %s/.config/sops/age/keys.txt:", userDir)
-			}
-		} else {
-			fmt.Println("Unable to decrypt file:", err, cmd)
-		}
+		fmt.Println("Unable to decrypt file:", err, cmd)
 	} else {
 		decryptedFilePath, err := filepath.Abs(filepath.Join(servicePath, filename))
 		if err != nil {

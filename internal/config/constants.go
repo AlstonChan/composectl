@@ -21,4 +21,6 @@ const (
 	LocalConfigDir    = ".composectl"
 	RepoPathEnv       = "COMPOSECTL_ROOT_DIR"
 	ConfigDirEnv      = "COMPOSECTL_LOCAL"
+
+	SopsAgeKeyFileEnv = "SOPS_AGE_KEY_FILE"
 )
