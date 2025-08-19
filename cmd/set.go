@@ -31,7 +31,7 @@ import (
 )
 
 var setCmd = &cobra.Command{
-	Use:   "set",
+	Use:   "set ...",
 	Short: "Set the configuration of the application",
 	Long: strings.ReplaceAll(
 		`Set the configuration of the CLI application so
@@ -45,12 +45,18 @@ The .composectl directory will be created besides the
 executable unless the CONFIG_DIR_ENV env is set to
 the path of the .composectl directory`,
 		"CONFIG_DIR_ENV", config.ConfigDirEnv),
+	Example: `$ composectl set repo-path=./
+$ composectl set age-pubkey=age1q...`,
+	ValidArgs: []string{
+		"repo-path",
+		"age-pubkey",
+	},
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			fmt.Println("Specify the flags to configure the application")
+			cmd.Help()
+			os.Exit(0)
 		}
-
-		services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 
 		var errorString string = ""
 		for _, argument := range args {
@@ -65,6 +71,7 @@ the path of the .composectl directory`,
 					errorString = "invalid format, expected key=value"
 					break
 				}
+				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 
 				key := parts[0]
 				value := parts[1]
@@ -91,6 +98,7 @@ the path of the .composectl directory`,
 					errorString = "invalid format, expected key=value"
 					break
 				}
+				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 
 				key := parts[0]
 				value := parts[1]
