@@ -29,8 +29,8 @@ import (
 
 var unSetCmd = &cobra.Command{
 	Use:   "unset ...",
-	Short: "Unset the configuration of the application",
-	Long: `Unset the configuration of the CLI application so
+	Short: "Unset the configuration for the application",
+	Long: `Unset the configuration for the CLI application so
 that it will use the default option the next time you 
 execute a command.`,
 	Example: SetConfigExample("unset"),

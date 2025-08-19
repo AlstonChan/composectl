@@ -37,9 +37,9 @@ const (
 
 var setCmd = &cobra.Command{
 	Use:   "set ...",
-	Short: "Set the configuration of the application",
+	Short: "Set the configuration for the application",
 	Long: strings.ReplaceAll(
-		`Set the configuration of the CLI application so
+		`Set the configuration for the CLI application so
 that it will remember the next time you execute a 
 command.
 
