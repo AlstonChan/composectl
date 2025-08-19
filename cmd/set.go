@@ -30,6 +30,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	CONFIG_REPO_PATH  = "repo-path"
+	CONFIG_AGE_PUBKEY = "age-pubkey"
+)
+
 var setCmd = &cobra.Command{
 	Use:   "set ...",
 	Short: "Set the configuration of the application",
@@ -45,11 +50,10 @@ The .composectl directory will be created besides the
 executable unless the CONFIG_DIR_ENV env is set to
 the path of the .composectl directory`,
 		"CONFIG_DIR_ENV", config.ConfigDirEnv),
-	Example: `$ composectl set repo-path=./
-$ composectl set age-pubkey=age1q...`,
+	Example: SetConfigExample("set"),
 	ValidArgs: []string{
-		"repo-path",
-		"age-pubkey",
+		CONFIG_REPO_PATH,
+		CONFIG_AGE_PUBKEY,
 	},
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -65,7 +69,7 @@ $ composectl set age-pubkey=age1q...`,
 			}
 
 			switch {
-			case strings.HasPrefix(argument, "repo-path"):
+			case strings.HasPrefix(argument, CONFIG_REPO_PATH):
 				parts := strings.SplitN(argument, "=", 2) // Split into key and value
 				if len(parts) != 2 {
 					errorString = "invalid format, expected key=value"
@@ -92,7 +96,7 @@ $ composectl set age-pubkey=age1q...`,
 				}
 
 				fmt.Printf("Repo root set to %s\n", absPath)
-			case strings.HasPrefix(argument, "age-pubkey"):
+			case strings.HasPrefix(argument, CONFIG_AGE_PUBKEY):
 				parts := strings.SplitN(argument, "=", 2) // Split into key and value
 				if len(parts) != 2 {
 					errorString = "invalid format, expected key=value"
@@ -107,7 +111,15 @@ $ composectl set age-pubkey=age1q...`,
 					fmt.Printf("The public key provided is invalid")
 					return
 				}
+
 				viper.Set(key, value)
+				if err := viper.WriteConfig(); err != nil {
+					// If config file doesn’t exist, create it
+					if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+						viper.SafeWriteConfig()
+					}
+					errorString = err.Error()
+				}
 
 				fmt.Printf("Age public key set to %s\n", value)
 			default:
@@ -119,6 +131,11 @@ $ composectl set age-pubkey=age1q...`,
 			fmt.Println((errorString))
 		}
 	},
+}
+
+func SetConfigExample(command string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(`$ composectl COMMAND repo-path=./
+$ composectl COMMAND age-pubkey=age1...`, "repo-path", CONFIG_REPO_PATH), "age-pubkey", CONFIG_AGE_PUBKEY), "COMMAND", command)
 }
 
 func init() {
