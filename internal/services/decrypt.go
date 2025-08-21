@@ -27,7 +27,7 @@ import (
 	"github.com/AlstonChan/composectl/internal/config"
 )
 
-func DecryptAllFile(repoRoot string, name string) error {
+func DecryptAllFile(repoRoot string, name string, overwrite bool) error {
 	files, err := ResolveServiceFiles(repoRoot, name, true)
 	if err != nil {
 		return fmt.Errorf("error resolving service's details: %v", err)
@@ -38,13 +38,13 @@ func DecryptAllFile(repoRoot string, name string) error {
 	}
 
 	for index, file := range files {
-		DecryptFile(repoRoot, name, index+1, file)
+		DecryptFile(repoRoot, name, index+1, file, overwrite)
 	}
 
 	return nil
 }
 
-func DecryptFile(repoRoot string, name string, index int, file ServiceFile) error {
+func DecryptFile(repoRoot string, name string, index int, file ServiceFile, overwrite bool) error {
 	var servicePath string = filepath.Join(repoRoot, config.DockerServicesDir, name)
 	var targetFilePath string = filepath.Join(servicePath, file.Filename)
 
@@ -58,6 +58,15 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile) erro
 	actualFilePath, err := filepath.Abs(targetFilePath)
 	if err != nil {
 		return err
+	}
+
+	decryptedFilePath, err := filepath.Abs(filepath.Join(servicePath, filename))
+	if err != nil {
+		return err
+	}
+
+	if _, err = os.Stat(decryptedFilePath); err == nil && !overwrite {
+		return fmt.Errorf("an decrypted file already exists, specify -o to overwrite it")
 	}
 
 	var cmd = exec.Command("sops", "--input-type", fileType, "--output-type", fileType,
@@ -78,11 +87,6 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile) erro
 	if out, err := cmd.Output(); err != nil {
 		fmt.Println("Unable to decrypt file:", err, cmd)
 	} else {
-		decryptedFilePath, err := filepath.Abs(filepath.Join(servicePath, filename))
-		if err != nil {
-			return err
-		}
-
 		// 1. Create the file.
 		file, err := os.Create(decryptedFilePath)
 		if err != nil {

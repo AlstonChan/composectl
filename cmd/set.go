@@ -50,7 +50,7 @@ The .composectl directory will be created besides the
 executable unless the CONFIG_DIR_ENV env is set to
 the path of the .composectl directory`,
 		"CONFIG_DIR_ENV", config.ConfigDirEnv),
-	Example: SetConfigExample("set"),
+	Example: setConfigExample("set", false),
 	ValidArgs: []string{
 		CONFIG_REPO_PATH,
 		CONFIG_AGE_PUBKEY,
@@ -133,7 +133,12 @@ the path of the .composectl directory`,
 	},
 }
 
-func SetConfigExample(command string) string {
+func setConfigExample(command string, noValue bool) string {
+	if noValue {
+		return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(`$ composectl COMMAND repo-path
+$ composectl COMMAND age-pubkey`, "repo-path", CONFIG_REPO_PATH), "age-pubkey", CONFIG_AGE_PUBKEY), "COMMAND", command)
+	}
+
 	return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(`$ composectl COMMAND repo-path=./
 $ composectl COMMAND age-pubkey=age1...`, "repo-path", CONFIG_REPO_PATH), "age-pubkey", CONFIG_AGE_PUBKEY), "COMMAND", command)
 }

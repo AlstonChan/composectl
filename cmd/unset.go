@@ -33,7 +33,7 @@ var unSetCmd = &cobra.Command{
 	Long: `Unset the configuration for the CLI application so
 that it will use the default option the next time you 
 execute a command.`,
-	Example: SetConfigExample("unset"),
+	Example: setConfigExample("unset", true),
 	ValidArgs: []string{
 		CONFIG_REPO_PATH,
 		CONFIG_AGE_PUBKEY,

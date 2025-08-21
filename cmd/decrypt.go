@@ -44,6 +44,7 @@ var decryptCmd = &cobra.Command{
 
 		decryptAll, _ := cmd.Flags().GetBool("decrypt-all")
 		index, _ := cmd.Flags().GetInt("index")
+		overwrite, _ := cmd.Flags().GetBool("overwrite")
 
 		if name == "" && sequence <= 0 {
 			fmt.Println("Either the service name or sequence must be specified correctly!")
@@ -84,7 +85,7 @@ var decryptCmd = &cobra.Command{
 		}
 
 		if decryptAll {
-			err = services.DecryptAllFile(repoRoot, name)
+			err = services.DecryptAllFile(repoRoot, name, overwrite)
 			if err != nil {
 				fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
 				return
@@ -106,7 +107,7 @@ var decryptCmd = &cobra.Command{
 				return
 			}
 
-			err = services.DecryptFile(repoRoot, name, index, files[index-1])
+			err = services.DecryptFile(repoRoot, name, index, files[index-1], overwrite)
 			if err != nil {
 				fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
 				return
@@ -121,4 +122,5 @@ func init() {
 	decryptCmd.Flags().IntP("sequence", "s", 0, "The sequence of the service")
 	decryptCmd.Flags().BoolP("decrypt-all", "a", false, "Decrypt all secrets of the service")
 	decryptCmd.Flags().IntP("index", "i", 0, "Specify the index of the secrets to decrypt")
+	decryptCmd.Flags().BoolP("overwrite", "o", false, "Whether to overwrite the file if it already exists")
 }
