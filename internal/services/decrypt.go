@@ -69,8 +69,13 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile, over
 		return fmt.Errorf("an decrypted file already exists, specify -o to overwrite it")
 	}
 
-	var cmd = exec.Command("sops", "--input-type", fileType, "--output-type", fileType,
-		"-d", actualFilePath)
+	var cmd *exec.Cmd = nil
+	if fileType == "" {
+		cmd = exec.Command("sops", "-d", actualFilePath)
+	} else {
+		cmd = exec.Command("sops", "--input-type", fileType, "--output-type", fileType,
+			"-d", actualFilePath)
+	}
 
 	if _, err := GetSopsAgeKeyPath(); err != nil {
 		return fmt.Errorf("%v", err)
@@ -146,6 +151,28 @@ func parseEncFilename(targetFilePath string, file string) (fileType string, decr
 	case strings.HasSuffix(targetFilePath, ".ini.enc"):
 		fileType = "ini"
 		decryptedFilename = strings.TrimSuffix(file, ".ini.enc") + ".ini"
+
+	case strings.HasSuffix(targetFilePath, ".enc.pem"):
+		fileType = ""
+		decryptedFilename = strings.TrimSuffix(file, ".pem.ini") + ".pem"
+	case strings.HasSuffix(targetFilePath, ".pem.enc"):
+		fileType = ""
+		decryptedFilename = strings.TrimSuffix(file, ".pem.enc") + ".pem"
+
+	default:
+		// Fallback: strip any trailing `.enc`
+		if strings.HasSuffix(file, ".enc") {
+			// case: something.enc.txt → something.txt
+			decryptedFilename = strings.TrimSuffix(file, ".enc")
+		} else if strings.Contains(file, ".enc.") {
+			// case: something.txt.enc → something.txt
+			decryptedFilename = strings.Replace(file, ".enc.", ".", 1)
+		} else {
+			// no `.enc`, keep as-is
+			decryptedFilename = file
+		}
+
+		fileType = ""
 	}
 
 	return fileType, decryptedFilename
