@@ -38,7 +38,10 @@ func DecryptAllFile(repoRoot string, name string, overwrite bool) error {
 	}
 
 	for index, file := range files {
-		DecryptFile(repoRoot, name, index+1, file, overwrite)
+		err = DecryptFile(repoRoot, name, index+1, file, overwrite)
+		if err != nil {
+			fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
+		}
 	}
 
 	return nil
