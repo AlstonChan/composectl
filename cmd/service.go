@@ -76,13 +76,16 @@ var serviceCmd = &cobra.Command{
 		decryptStatus := services.GetDecryptedFilesStatus(repoRoot, name)
 
 		var serviceDirectory string = filepath.Join(repoRoot, config.DockerServicesDir, name)
-		state, err := services.GetServiceState(serviceDirectory)
+		states, err := services.GetAllServiceState(serviceDirectory)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("Docker status: %s\n", services.GetServiceStatusString(state))
-		fmt.Printf("Decryption status: %s\n\n", services.GetDecryptedStatusString(decryptStatus))
+		for _, state := range states {
+			fmt.Printf("%s:\n", state.File)
+			fmt.Printf("Docker status: %s\n", services.GetServiceStatusString(state.ServiceState))
+			fmt.Printf("Decryption status: %s\n\n", services.GetDecryptedStatusString(decryptStatus))
+		}
 
 		// List files
 		files, err := services.ResolveServiceFiles(repoRoot, name, !includeAllFiles)

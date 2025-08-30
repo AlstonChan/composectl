@@ -49,11 +49,14 @@ func processService(channel <-chan Service, result []ServiceOutput, counter *int
 
 		decryptStatus := services.GetDecryptedFilesStatus(repoRoot, service.name)
 
-		state, err := services.GetServiceState(serviceDirectory)
+		state, err := services.GetActiveServiceState(serviceDirectory)
 		if err != nil {
 			log.Fatal(err)
 		}
-		var serviceStatus string = services.GetServiceStatusString(state)
+		var serviceStatus string = services.GetServiceStatusString(state.ServiceState)
+		if state.Label != "" {
+			serviceStatus += " (" + state.Label + ")"
+		}
 
 		// Atomically get the next index
 		idx := atomic.AddInt32(counter, 1) - 1
@@ -124,7 +127,7 @@ var listCmd = &cobra.Command{
 
 		// Print final results
 		for _, result := range serviceOutput {
-			fmt.Printf("%2d - %-25s  Status: %-10s  Decrypted: %-6s\n",
+			fmt.Printf("%2d - %-23s  Status: %-16s  Decrypted: %-6s\n",
 				result.sequence, result.name, result.dockerStatus, services.GetDecryptedStatusString(result.decryptStatus))
 		}
 		fmt.Print("\n")

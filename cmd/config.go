@@ -18,7 +18,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/AlstonChan/composectl/internal/config"
+	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -27,6 +30,8 @@ var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Show the configuration that has been set for the application",
 	Run: func(cmd *cobra.Command, args []string) {
+		services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
+
 		var repoPath string = viper.GetString(CONFIG_REPO_PATH)
 		var agePubKey string = viper.GetString(CONFIG_AGE_PUBKEY)
 

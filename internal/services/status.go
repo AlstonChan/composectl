@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"sort"
 	"strings"
 )
 
@@ -47,8 +48,68 @@ type composeService struct {
 	Status string `json:"State"`
 }
 
-func GetServiceState(projectDir string) (ServiceState, error) {
-	cmd := exec.Command("docker", "compose", "ps", "--format", "json")
+type composeFileStatus struct {
+	ServiceState
+	Label string
+	File  string
+}
+
+func GetActiveServiceState(projectDir string) (composeFileStatus, error) {
+	var services, err = GetAllServiceState(projectDir)
+	if err != nil {
+		return composeFileStatus{ServiceState: Unused, Label: ""}, err
+	}
+
+	var activeService composeFileStatus
+	for _, service := range services {
+		if service.ServiceState != PartiallyRunning || service.ServiceState == Running {
+			activeService = service
+			break
+		}
+	}
+
+	return activeService, nil
+}
+
+func GetAllServiceState(projectDir string) ([]composeFileStatus, error) {
+	var allComposeFiles, err = FindComposeFiles(projectDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var services []composeFileStatus = make([]composeFileStatus, len(allComposeFiles))
+	for index, file := range allComposeFiles {
+		state, err := GetServiceState(projectDir, file)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		label, err := ExtractComposeVariant(file)
+		if err != nil {
+			fmt.Printf("Error parsing docker compose filename: %s\n", file)
+			continue
+		}
+
+		services[index] = composeFileStatus{ServiceState: state, Label: label, File: file}
+	}
+
+	// Sort the service label, with empty string at the first
+	sort.Slice(services, func(i, j int) bool {
+		li, lj := services[i].Label, services[j].Label
+		if li == "" && lj != "" {
+			return true // "" comes before others
+		}
+		if li != "" && lj == "" {
+			return false // others come after ""
+		}
+		return li < lj // both non-empty → normal alpha order
+	})
+
+	return services, nil
+}
+
+func GetServiceState(projectDir string, composeFile string) (ServiceState, error) {
+	cmd := exec.Command("docker", "compose", "-f", composeFile, "ps", "--format", "json")
 	cmd.Dir = projectDir
 
 	out, err := cmd.Output()

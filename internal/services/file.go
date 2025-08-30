@@ -16,7 +16,13 @@ limitations under the License.
 
 package services
 
-import "os"
+import (
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
+)
 
 type LineEnding int
 
@@ -25,6 +31,14 @@ const (
 	LF
 	CRLF
 )
+
+// Regex for matching file names
+// Matches:
+// - docker-compose.yml
+// - docker_compose.<anything>.yml
+// - compose.yml
+// - compose.<anything>.yml
+var dockerComposeFileRegex = regexp.MustCompile(`^(docker[-_]compose|compose)(?:\.(.+))?\.yml$`)
 
 func DetectLineEnding(path string) (LineEnding, error) {
 	file, err := os.Open(path)
@@ -60,4 +74,42 @@ func DetectLineEnding(path string) (LineEnding, error) {
 	}
 
 	return Unknown, nil
+}
+
+// Recursively finds Docker Compose files under startingPath
+func FindComposeFiles(startingPath string) ([]string, error) {
+	var results []string
+
+	err := filepath.WalkDir(startingPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			// If we cannot access a directory, just skip it
+			return nil
+		}
+		if !d.IsDir() && dockerComposeFileRegex.MatchString(d.Name()) {
+			relPath, err := filepath.Rel(startingPath, path)
+			if err != nil {
+				return err
+			}
+			results = append(results, relPath)
+		}
+		return nil
+	})
+
+	return results, err
+}
+
+// ExtractComposeVariant extracts the "middle part" of a docker compose filename.
+// Returns "" if it's the base file (compose.yml or docker-compose.yml).
+// Returns error if it doesn't match known patterns.
+func ExtractComposeVariant(path string) (string, error) {
+	// Just take the file name, not the full path
+	filename := filepath.Base(path)
+
+	m := dockerComposeFileRegex.FindStringSubmatch(filename)
+	if m == nil {
+		return "", errors.New("not a recognized compose file")
+	}
+
+	// m[2] contains the optional "middle part"
+	return m[2], nil
 }
