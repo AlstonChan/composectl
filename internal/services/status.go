@@ -62,7 +62,7 @@ func GetActiveServiceState(projectDir string) (composeFileStatus, error) {
 
 	var activeService composeFileStatus
 	for _, service := range services {
-		if service.ServiceState != PartiallyRunning || service.ServiceState == Running {
+		if service.ServiceState == PartiallyRunning || service.ServiceState == Running {
 			activeService = service
 			break
 		}

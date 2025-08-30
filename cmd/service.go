@@ -81,10 +81,10 @@ var serviceCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
+		fmt.Printf("Decryption status: %s\n\n", services.GetDecryptedStatusString(decryptStatus))
 		for _, state := range states {
 			fmt.Printf("%s:\n", state.File)
-			fmt.Printf("Docker status: %s\n", services.GetServiceStatusString(state.ServiceState))
-			fmt.Printf("Decryption status: %s\n\n", services.GetDecryptedStatusString(decryptStatus))
+			fmt.Printf("Docker status: %s\n\n", services.GetServiceStatusString(state.ServiceState))
 		}
 
 		// List files
