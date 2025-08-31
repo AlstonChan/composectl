@@ -84,7 +84,7 @@ execute a command.`,
 		}
 
 		if errorString != "" {
-			fmt.Println((errorString))
+			fmt.Fprintln(os.Stderr, errorString)
 		}
 	},
 }

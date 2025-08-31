@@ -58,5 +58,5 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.composectl.yaml)")
-	rootCmd.PersistentFlags().StringVarP(&repoPath, "repo-path", "r", "", "Path to selfhost repo (overrides default location)")
+	rootCmd.PersistentFlags().StringVarP(&repoPath, CONFIG_REPO_PATH, "r", "", "Path to selfhost repo (overrides default location)")
 }

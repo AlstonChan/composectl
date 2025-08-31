@@ -75,23 +75,23 @@ var listCmd = &cobra.Command{
 
 		if repoPath == "" {
 			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-			if val := viper.GetString("repo-path"); val != "" {
+			if val := viper.GetString(CONFIG_REPO_PATH); val != "" {
 				repoPath = val
 			}
 		}
 
 		repoRoot, err := services.ResolveRepoRoot(repoPath)
 		if err != nil {
-			log.Fatalf("Error resolving repo root: %v", err)
+			fmt.Fprintf(os.Stderr, "Error resolving repo root: %v\n", err)
 		}
 
 		serviceList, err := services.ListAllService(repoRoot)
 		if err != nil {
-			log.Fatalf("Error listing services: %v", err)
+			fmt.Fprintf(os.Stderr, "Error listing services: %v\n", err)
 		}
 
 		if len(serviceList) == 0 {
-			fmt.Println("No services found.")
+			fmt.Fprintln(os.Stderr, "No services found.")
 			return
 		}
 

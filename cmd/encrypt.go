@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -52,19 +51,19 @@ var encryptCmd = &cobra.Command{
 
 		if repoPath == "" {
 			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-			if val := viper.GetString("repo-path"); val != "" {
+			if val := viper.GetString(CONFIG_REPO_PATH); val != "" {
 				repoPath = val
 			}
 		}
 
 		repoRoot, err := services.ResolveRepoRoot(repoPath)
 		if err != nil {
-			log.Fatalf("Error resolving repo root: %v", err)
+			fmt.Fprintf(os.Stderr, "Error resolving repo root: %v\n", err)
 		}
 
 		serviceLists, err := services.ValidateService(repoRoot, &sequence, &name)
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 		}
 
 		if serviceLists == nil && err == nil {
@@ -73,13 +72,13 @@ var encryptCmd = &cobra.Command{
 
 		if publicKey == "" {
 			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-			if val := viper.GetString("age-pubkey"); val != "" {
+			if val := viper.GetString(CONFIG_AGE_PUBKEY); val != "" {
 				publicKey = val
 			} else {
 				var err error
 				publicKey, err = services.GetPublicKeyFromDefaultLocation()
 				if err != nil {
-					fmt.Printf("An error occurred while getting the public key: %v", err)
+					fmt.Fprintf(os.Stderr, "An error occurred while getting the public key: %v\n", err)
 					return
 				}
 			}
@@ -87,12 +86,12 @@ var encryptCmd = &cobra.Command{
 
 		var targetFile string = filepath.Join(repoRoot, config.DockerServicesDir, name, file)
 		if _, err := os.Stat(targetFile); err != nil {
-			fmt.Printf("The provided file %s does not exists!", targetFile)
+			fmt.Fprintf(os.Stderr, "The provided file %s does not exists!\n", targetFile)
 			return
 		}
 
 		if err := services.EncryptFile(targetFile, publicKey, overwrite); err != nil {
-			fmt.Println(err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 			return
 		}
 	},

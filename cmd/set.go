@@ -128,7 +128,7 @@ the path of the .composectl directory`,
 		}
 
 		if errorString != "" {
-			fmt.Println((errorString))
+			fmt.Fprintln(os.Stderr, errorString)
 		}
 	},
 }

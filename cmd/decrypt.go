@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/AlstonChan/composectl/internal/config"
@@ -63,19 +62,19 @@ var decryptCmd = &cobra.Command{
 
 		if repoPath == "" {
 			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-			if val := viper.GetString("repo-path"); val != "" {
+			if val := viper.GetString(CONFIG_REPO_PATH); val != "" {
 				repoPath = val
 			}
 		}
 
 		repoRoot, err := services.ResolveRepoRoot(repoPath)
 		if err != nil {
-			log.Fatalf("Error resolving repo root: %v", err)
+			fmt.Fprintf(os.Stderr, "Error resolving repo root: %v\n", err)
 		}
 
 		serviceLists, err := services.ValidateService(repoRoot, &sequence, &name)
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 			return
 		}
 
@@ -87,29 +86,29 @@ var decryptCmd = &cobra.Command{
 		if decryptAll {
 			err = services.DecryptAllFile(repoRoot, name, overwrite)
 			if err != nil {
-				fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
+				fmt.Fprintf(os.Stderr, "Unable to decrypt file for service %s: %v\n", name, err)
 				return
 			}
 		} else {
 			files, err := services.ResolveServiceFiles(repoRoot, name, true)
 			if err != nil {
-				fmt.Printf("error resolving service's details: %v", err)
+				fmt.Fprintf(os.Stderr, "error resolving service's details: %v\n", err)
 				return
 			}
 
 			if len(files) == 0 {
-				fmt.Printf("this service does not have any file to decrypt")
+				fmt.Println("this service does not have any file to decrypt")
 				return
 			}
 
 			if index < 0 || index > len(files) || files[index-1] == (services.ServiceFile{}) {
-				fmt.Printf("the file given index %d does not exists", index)
+				fmt.Fprintf(os.Stderr, "the file given index %d does not exists\n", index)
 				return
 			}
 
 			err = services.DecryptFile(repoRoot, name, index, files[index-1], overwrite)
 			if err != nil {
-				fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
+				fmt.Fprintf(os.Stderr, "Unable to decrypt file for service %s: %v\n", name, err)
 				return
 			}
 		}
