@@ -18,7 +18,6 @@ package services
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,7 +39,8 @@ func DecryptAllFile(repoRoot string, name string, overwrite bool) error {
 	for index, file := range files {
 		err = DecryptFile(repoRoot, name, index+1, file, overwrite)
 		if err != nil {
-			fmt.Printf("Unable to decrypt file for service %s: %v", name, err)
+			// Directly print the error for individual file, continue to the next one.
+			fmt.Fprintf(os.Stderr, "Unable to decrypt file for service %s: %v\n", name, err)
 		}
 	}
 
@@ -81,7 +81,7 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile, over
 	}
 
 	if _, err := GetSopsAgeKeyPath(); err != nil {
-		return fmt.Errorf("%v", err)
+		return err
 	}
 
 	if lineEnding, err := DetectLineEnding(actualFilePath); err != nil {
@@ -89,7 +89,7 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile, over
 	} else if lineEnding == CRLF {
 		return fmt.Errorf("sops does not support decrypting files with CRLF line endings, please convert it to LF line endings first")
 	} else if lineEnding == Unknown {
-		fmt.Printf("Warning: the line ending of %s is unknown, it may not be decrypted correctly\n", actualFilePath)
+		fmt.Fprintf(os.Stderr, "Warning: the line ending of %s is unknown, it may not be decrypted correctly\n", actualFilePath)
 	}
 
 	if out, err := cmd.Output(); err != nil {
@@ -98,7 +98,7 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile, over
 		// 1. Create the file.
 		file, err := os.Create(decryptedFilePath)
 		if err != nil {
-			log.Fatalf("failed to create file for %s: %v", filename, err)
+			fmt.Fprintf(os.Stderr, "failed to create file for %s: %v\n", filename, err)
 		}
 
 		// 2. Use `defer` to ensure the file is closed.
@@ -107,7 +107,7 @@ func DecryptFile(repoRoot string, name string, index int, file ServiceFile, over
 		// 3. Write the content to the file.
 		_, err = file.Write(out)
 		if err != nil {
-			log.Fatalf("failed to write to file: %v", err)
+			fmt.Fprintf(os.Stderr, "failed to write to file: %v\n", err)
 		}
 
 		fmt.Printf("File %s decrypted successfully\n", filename)

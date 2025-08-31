@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -81,12 +81,13 @@ func GetAllServiceState(projectDir string) ([]composeFileStatus, error) {
 	for index, file := range allComposeFiles {
 		state, err := GetServiceState(projectDir, file)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "Error getting service state for %s: %v\n", file, err)
+			continue
 		}
 
 		label, err := ExtractComposeVariant(file)
 		if err != nil {
-			fmt.Printf("Error parsing docker compose filename: %s\n", file)
+			fmt.Fprintf(os.Stderr, "Error parsing docker compose filename: %s\n", file)
 			continue
 		}
 
@@ -130,8 +131,7 @@ func GetServiceState(projectDir string, composeFile string) (ServiceState, error
 	for dec.More() {
 		var container composeService
 		if err := dec.Decode(&container); err != nil {
-			fmt.Println("Error decoding docker compose ps (json) output:", err)
-			return Stopped, err
+			return Stopped, fmt.Errorf("error decoding docker compose ps (json) output: %v", err)
 		}
 		services = append(services, container)
 	}
@@ -175,7 +175,8 @@ func GetServiceStatusString(state ServiceState) string {
 func GetDecryptedFilesStatus(root string, serviceName string) ServiceDecryptionStatus {
 	files, err := ResolveServiceFiles(root, serviceName, true)
 	if err != nil {
-		log.Fatalf("Error resolving service's details: %v", err)
+		fmt.Fprintf(os.Stderr, "Error resolving service's details: %v\n", err)
+		return NIL
 	}
 
 	var decryptedFileCount int = 0

@@ -17,7 +17,6 @@ limitations under the License.
 package deps
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -34,7 +33,7 @@ func parseMajorVersion(output string) (int, error) {
 			}
 		}
 	}
-	return 0, errors.New("no valid version number found")
+	return 0, fmt.Errorf("no valid version number found")
 }
 
 func CheckDockerDeps(requiredBuildxMajor, requiredComposeMajor int) error {

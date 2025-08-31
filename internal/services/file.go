@@ -17,7 +17,7 @@ limitations under the License.
 package services
 
 import (
-	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -107,7 +107,7 @@ func ExtractComposeVariant(path string) (string, error) {
 
 	m := dockerComposeFileRegex.FindStringSubmatch(filename)
 	if m == nil {
-		return "", errors.New("not a recognized compose file")
+		return "", fmt.Errorf("not a recognized compose file")
 	}
 
 	// m[2] contains the optional "middle part"

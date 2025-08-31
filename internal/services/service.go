@@ -69,8 +69,8 @@ func ResolveServiceFiles(root string, serviceName string, secretsOnly bool) ([]S
 		}
 
 		// Get the path relative to the root.
-		// For example, if rootPath is "SelfHostService/docker_services/treafik" and the file is
-		// "/home/alston/SelfHostService/docker_services/traefik/env.enc",
+		// For example, if rootPath is "SelfHostService/docker_services/traefik" and the file is
+		// "/home/user/SelfHostService/docker_services/traefik/env.enc",
 		// this will return "traefik/env.enc".
 		relativePath, err := filepath.Rel(servicePath, path)
 		if err != nil {
@@ -100,11 +100,10 @@ func ValidateService(repoRoot string, sequence *int, name *string) ([]string, er
 
 	if len(serviceList) == 0 {
 		if *sequence >= 1 {
-			fmt.Printf("Service with sequence %d not found", *sequence)
+			return nil, fmt.Errorf("service with sequence %d not found", *sequence)
 		} else if *name != "" {
-			fmt.Printf("Service with name %s not found", *name)
+			return nil, fmt.Errorf("service with name %s not found", *name)
 		}
-		return nil, nil
 	}
 
 	// Check if service specified exists

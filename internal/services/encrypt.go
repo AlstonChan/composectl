@@ -18,9 +18,7 @@ package services
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,13 +34,13 @@ func EncryptFile(targetFile string, publicKey string, overwrite bool) error {
 	}
 
 	if out, err := cmd.Output(); err != nil {
-		fmt.Println("Unable to encrypt file:", err, cmd)
+		return fmt.Errorf("unable to encrypt file: %v", err)
 	} else {
 
 		// 1. Create the file.
 		file, err := os.Create(encryptedFile)
 		if err != nil {
-			log.Fatalf("failed to create file for %s: %v", encryptedFile, err)
+			return fmt.Errorf("failed to create file for %s: %v", encryptedFile, err)
 		}
 
 		// 2. Use `defer` to ensure the file is closed.
@@ -51,13 +49,11 @@ func EncryptFile(targetFile string, publicKey string, overwrite bool) error {
 		// 3. Write the content to the file.
 		_, err = file.Write(out)
 		if err != nil {
-			log.Fatalf("failed to write to file: %v", err)
+			return fmt.Errorf("failed to write to file: %v", err)
 		}
 
-		fmt.Printf("File %s encrypted successfully\n", encryptedFile)
+		return fmt.Errorf("file %s encrypted successfully", encryptedFile)
 	}
-
-	return nil
 }
 
 func GetPublicKeyFromDefaultLocation() (string, error) {
@@ -89,7 +85,7 @@ func extractPublicKey(path string) (string, error) {
 		if strings.HasPrefix(line, "# public key:") {
 			pub := strings.TrimSpace(strings.TrimPrefix(line, "# public key:"))
 			if pub == "" {
-				return "", errors.New("public key line found but empty") // edge case
+				return "", fmt.Errorf("public key line found but empty") // edge case
 			}
 			return pub, nil
 		}
@@ -100,5 +96,5 @@ func extractPublicKey(path string) (string, error) {
 	}
 
 	// case 2: file exists but no public key line
-	return "", errors.New("public key not found in file")
+	return "", fmt.Errorf("public key not found in file")
 }

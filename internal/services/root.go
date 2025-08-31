@@ -53,7 +53,7 @@ func GetExecutableDir() (string, error) {
 
 func verifyRepoRoot(path string) (string, error) {
 	var gitDir = filepath.Join(path, ".git")
-	var dockerServicesDir = filepath.Join(path, "docker_services")
+	var dockerServicesDir = filepath.Join(path, config.DockerServicesDir)
 
 	if _, err := os.Stat(gitDir); err != nil {
 		return "", fmt.Errorf("not a valid selfhost repo root at %s (missing .git)", path)
@@ -101,10 +101,10 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			if err := viper.SafeWriteConfig(); err != nil && !os.IsExist(err) {
-				fmt.Println("Error creating config file:", err)
+				fmt.Fprintf(os.Stderr, "Error creating config file: %v\n", err)
 			}
 		} else {
-			fmt.Println("Error reading config file:", err)
+			fmt.Fprintf(os.Stderr, "Error reading config file: %v\n", err)
 		}
 	}
 }

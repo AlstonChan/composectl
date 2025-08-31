@@ -31,9 +31,9 @@ func GetSopsAgeKeyPath() (string, error) {
 		_, err := os.Stat(keysPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				fmt.Printf("age key file does not found from the path specified by %s\n", config.SopsAgeKeyFileEnv)
+				return "", fmt.Errorf("age key file does not found from the path specified by %s", config.SopsAgeKeyFileEnv)
 			} else {
-				fmt.Printf("Unable to extract public key from the path specified by %s\n", config.SopsAgeKeyFileEnv)
+				return "", fmt.Errorf("unable to extract public key from the path specified by %s", config.SopsAgeKeyFileEnv)
 			}
 		} else {
 			return keysPath, nil
