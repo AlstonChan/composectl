@@ -46,7 +46,7 @@ var encryptCmd = &cobra.Command{
 
 		if err := deps.CheckSops(); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
-			os.Exit(1)
+			return
 		}
 
 		if repoPath == "" {
@@ -59,11 +59,13 @@ var encryptCmd = &cobra.Command{
 		repoRoot, err := services.ResolveRepoRoot(repoPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error resolving repo root: %v\n", err)
+			return
 		}
 
 		serviceLists, err := services.ValidateService(repoRoot, &sequence, &name)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
+			return
 		}
 
 		if serviceLists == nil && err == nil {

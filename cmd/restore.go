@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/AlstonChan/composectl/internal/config"
 	"github.com/AlstonChan/composectl/internal/deps"
@@ -28,16 +27,34 @@ import (
 	"github.com/spf13/viper"
 )
 
-var serviceCmd = &cobra.Command{
-	Use:   "service",
-	Short: "Show the details of the specified service",
+var restoreCmd = &cobra.Command{
+	Use:   "restore",
+	Short: "Restore the service's data from backup",
 	Run: func(cmd *cobra.Command, args []string) {
 		name, _ := cmd.Flags().GetString("name")
 		sequence, _ := cmd.Flags().GetInt("sequence")
-		includeAllFiles, _ := cmd.Flags().GetBool("all")
+
+		path, _ := cmd.Flags().GetString("path")
+		remote, _ := cmd.Flags().GetString("remote")
+
+		dayOffset, _ := cmd.Flags().GetInt("day")
 
 		if name == "" && sequence <= 0 {
 			fmt.Println("Either the service name or sequence must be specified correctly!")
+			return
+		}
+
+		if path == "" && remote == "" {
+			fmt.Println("Either the backup file path or remote location must be specified!")
+			return
+		}
+		if path != "" && remote != "" {
+			fmt.Println("Cannot use both path and remote to restore backup")
+			return
+		}
+
+		if dayOffset <= 0 {
+			fmt.Println("day offset must be a positive number")
 			return
 		}
 
@@ -69,58 +86,25 @@ var serviceCmd = &cobra.Command{
 			return
 		}
 
-		// Main Info
-		fmt.Println("================================")
-		fmt.Printf("Docker service %s(%d)\n", name, sequence)
-		fmt.Println("================================")
+		if path != "" {
+			// Handle restoring backup from local path
 
-		decryptStatus := services.GetDecryptedFilesStatus(repoRoot, name)
-
-		var serviceDirectory string = filepath.Join(repoRoot, config.DockerServicesDir, name)
-		states, err := services.GetAllServiceState(serviceDirectory)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-		}
-
-		fmt.Printf("Decryption status: %s\n\n", services.GetDecryptedStatusString(decryptStatus))
-		for _, state := range states {
-			fmt.Printf("%s:\n", state.File)
-			fmt.Printf("Docker status: %s\n\n", services.GetServiceStatusString(state.ServiceState))
-		}
-
-		// List files
-		files, err := services.ResolveServiceFiles(repoRoot, name, !includeAllFiles)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error resolving service's details: %v\n", err)
-		}
-
-		if includeAllFiles {
-			fmt.Printf("All %s service files\n", name)
+		} else if remote != "" {
+			// Handle restoring backup from remote location
 		} else {
-			fmt.Printf("All %s service secrets\n", name)
+			fmt.Fprintln(os.Stderr, "Internal application error, unknown decision tree")
+			return
 		}
-
-		var secretCount int = 1
-		for _, file := range files {
-			if file.IsSecrets {
-				fmt.Printf("%2d. %s", secretCount, file.Filename)
-				secretCount++
-			} else {
-				fmt.Printf("--- %s", file.Filename)
-			}
-
-			if file.HasDecryptedVersion {
-				fmt.Printf(" (has decrypted version)")
-			}
-			fmt.Print("\n")
-		}
+		fmt.Println("Command not implemented yet...; service name:", name, "sequence:", sequence)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(serviceCmd)
-	serviceCmd.Flags().StringP("name", "n", "", "The name of the service")
-	serviceCmd.Flags().IntP("sequence", "s", 0,
+	rootCmd.AddCommand(restoreCmd)
+	restoreCmd.Flags().StringP("name", "n", "", "The name of the service")
+	restoreCmd.Flags().IntP("sequence", "s", 0,
 		"The sequence of the service. This args has precedence over the name args when both are specified")
-	serviceCmd.Flags().BoolP("all", "a", false, "List all file, including non-secrets")
+	restoreCmd.Flags().StringP("path", "p", "", "The path to the local backup file (mutually exclusive with --remote)")
+	restoreCmd.Flags().StringP("remote", "r", "", "The remote location to restore the backup from (mutually exclusive with --path)")
+	restoreCmd.Flags().IntP("day", "d", 1, "Relative day offset for backup (1 = latest, 2 = yesterday, etc.)")
 }

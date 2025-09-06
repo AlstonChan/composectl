@@ -1,0 +1,6 @@
+# Ignore binary file
+composectl
+composectl.exe
+
+# Ignore test results
+test/archive
