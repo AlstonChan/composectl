@@ -21,6 +21,8 @@ services:
       # Mount the compose file that composectl will use to generate the metadata
       - ./compose.backup.yml:/compose.backup.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Mount the archive directory to validate result
+      - ./archive:/archive
     labels:
       - docker-volume-backup.archive-pre=/usr/local/bin/test-backup.sh
 
