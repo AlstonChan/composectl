@@ -19,7 +19,9 @@ services:
       # Mount the composectl binary to use in the backup script
       - ../composectl:/usr/local/bin/composectl:ro
       # Mount the compose file that composectl will use to generate the metadata
-      - ./compose.backup.yml:/compose.backup.yml:ro
+      # The one gotcha is to always mount to /service/compose.yml or it couldn't
+      # determine the correct volume name due to missing service name
+      - ./compose.backup.yml:/test/compose.backup.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Mount the archive directory to validate result
       - ./archive:/archive
