@@ -1,0 +1,28 @@
+name: Compose Backup Test
+
+services:
+  app:
+    image: alpine
+    volumes:
+      - test-data:/data
+    command: sh -c "echo 'hello world' > /data/hello.txt && sleep infinity"
+
+  backup:
+    image: offen/docker-volume-backup:v2
+    environment:
+      BACKUP_FILENAME: test-backup-%Y-%m-%dT%H-%M-%S.tar.gz
+    volumes:
+      # Mount the actual named volume to backup
+      - test-data:/backup/test-data:ro
+      # Mount the backup script for archive-pre lifecycle event
+      - ./test-backup.sh:/usr/local/bin/test-backup.sh:ro
+      # Mount the composectl binary to use in the backup script
+      - ../composectl:/usr/local/bin/composectl:ro
+      # Mount the compose file that composectl will use to generate the metadata
+      - ./compose.backup.yml:/compose.backup.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - docker-volume-backup.archive-pre=/usr/local/bin/test-backup.sh
+
+volumes:
+  test-data:

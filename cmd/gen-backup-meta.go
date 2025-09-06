@@ -102,7 +102,10 @@ var genBackupMetaCmd = &cobra.Command{
 		if service, ok := services[serviceName]; ok {
 			fmt.Printf("Service \"%s\" found\n", serviceName)
 
-			serviceMap := service.(map[string]any)
+			serviceMap, ok := service.(map[string]any)
+			if !ok {
+				return fmt.Errorf("unable to parse the service \"%s\" correctly", serviceName)
+			}
 
 			// Get the volumes section of the service
 			if volumes, ok := serviceMap["volumes"]; ok {
@@ -156,22 +159,27 @@ var genBackupMetaCmd = &cobra.Command{
 		for _, v := range tempVolumeMappings {
 			// Check if the volume is defined as a named volume
 			if volume, ok := volumes[v.Name]; ok {
-				volumeMap := volume.(map[string]any)
-
-				// Get the volume name
-				if volumes, ok := volumeMap["name"]; ok {
-					if volumeName, ok := volumes.(string); ok {
-						volumeMappings = append(volumeMappings, Volume{Name: volumeName, Path: v.Path})
+				if volumeMap, ok := volume.(map[string]any); ok {
+					// Get the volume name
+					if volumes, ok := volumeMap["name"]; ok {
+						if volumeName, ok := volumes.(string); ok {
+							volumeMappings = append(volumeMappings, Volume{Name: volumeName, Path: v.Path})
+						} else {
+							fmt.Println("volumes field cannot be parsed correctly")
+						}
 					} else {
-						fmt.Println("volumes field cannot be parsed correctly")
+						// Append the directory name of the docker compose file and concat them with a underscore
+						volumeMappings = append(volumeMappings, Volume{Name: serviceDirName + "_" + v.Name, Path: v.Path})
 					}
 				} else {
+					fmt.Printf("volume %q don't have any settings\n", v.Name)
+
 					// Append the directory name of the docker compose file and concat them with a underscore
 					volumeMappings = append(volumeMappings, Volume{Name: serviceDirName + "_" + v.Name, Path: v.Path})
 				}
 			} else {
 				// Happens because the volume is local mount
-				fmt.Printf("volumes \"%s\" not found in volumes section", v)
+				fmt.Printf("volumes \"%s\" not found in volumes section\n", v)
 			}
 		}
 
