@@ -34,8 +34,27 @@ var restoreCmd = &cobra.Command{
 		name, _ := cmd.Flags().GetString("name")
 		sequence, _ := cmd.Flags().GetInt("sequence")
 
+		path, _ := cmd.Flags().GetString("path")
+		remote, _ := cmd.Flags().GetString("remote")
+
+		dayOffset, _ := cmd.Flags().GetInt("day")
+
 		if name == "" && sequence <= 0 {
 			fmt.Println("Either the service name or sequence must be specified correctly!")
+			return
+		}
+
+		if path == "" && remote == "" {
+			fmt.Println("Either the backup file path or remote location must be specified!")
+			return
+		}
+		if path != "" && remote != "" {
+			fmt.Println("Cannot use both path and remote to restore backup")
+			return
+		}
+
+		if dayOffset <= 0 {
+			fmt.Println("day offset must be a positive number")
 			return
 		}
 
@@ -67,6 +86,15 @@ var restoreCmd = &cobra.Command{
 			return
 		}
 
+		if path != "" {
+			// Handle restoring backup from local path
+
+		} else if remote != "" {
+			// Handle restoring backup from remote location
+		} else {
+			fmt.Fprintln(os.Stderr, "Internal application error, unknown decision tree")
+			return
+		}
 		fmt.Println("Command not implemented yet...; service name:", name, "sequence:", sequence)
 	},
 }
@@ -76,4 +104,7 @@ func init() {
 	restoreCmd.Flags().StringP("name", "n", "", "The name of the service")
 	restoreCmd.Flags().IntP("sequence", "s", 0,
 		"The sequence of the service. This args has precedence over the name args when both are specified")
+	restoreCmd.Flags().StringP("path", "p", "", "The path to the local backup file (mutually exclusive with --remote)")
+	restoreCmd.Flags().StringP("remote", "r", "", "The remote location to restore the backup from (mutually exclusive with --path)")
+	restoreCmd.Flags().IntP("day", "d", 1, "Relative day offset for backup (1 = latest, 2 = yesterday, etc.)")
 }
