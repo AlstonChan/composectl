@@ -19,7 +19,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -95,7 +94,7 @@ func ResolveServiceFiles(root string, serviceName string, secretsOnly bool) ([]S
 func ValidateService(repoRoot string, sequence *int, name *string) ([]string, error) {
 	serviceList, err := ListAllService(repoRoot)
 	if err != nil {
-		log.Fatalf("Error listing services: %v", err)
+		return nil, fmt.Errorf("error listing services: %v", err)
 	}
 
 	if len(serviceList) == 0 {

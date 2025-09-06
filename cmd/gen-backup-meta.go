@@ -195,12 +195,9 @@ var genBackupMetaCmd = &cobra.Command{
 			Volumes:     volumeMappings,
 		}
 
-		// Check if the output path ends with .json
-		var OutputPathExtension = filepath.Ext(fullOutputPath)
-
 		var targetFile string = fullOutputPath
 		// Append backup.json if it does not already include a json file in the output string
-		if OutputPathExtension != ".json" {
+		if filepath.Ext(fullOutputPath) != ".json" {
 			targetFile = filepath.Join(fullOutputPath, "backup.json")
 		}
 

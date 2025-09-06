@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,7 +82,7 @@ the path of the .composectl directory`,
 				// Resolve to absolute path
 				absPath, err := filepath.Abs(value)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Fprintln(os.Stderr, err.Error())
 				}
 				viper.Set(key, absPath)
 

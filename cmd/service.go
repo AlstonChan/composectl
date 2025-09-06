@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -44,7 +43,7 @@ var serviceCmd = &cobra.Command{
 
 		if err := deps.CheckDockerDeps(0, 2); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
-			os.Exit(1)
+			return
 		}
 
 		if repoPath == "" {
@@ -57,11 +56,13 @@ var serviceCmd = &cobra.Command{
 		repoRoot, err := services.ResolveRepoRoot(repoPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error resolving repo root: %v\n", err)
+			return
 		}
 
 		serviceLists, err := services.ValidateService(repoRoot, &sequence, &name)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
+			return
 		}
 
 		if serviceLists == nil && err == nil {
@@ -78,7 +79,7 @@ var serviceCmd = &cobra.Command{
 		var serviceDirectory string = filepath.Join(repoRoot, config.DockerServicesDir, name)
 		states, err := services.GetAllServiceState(serviceDirectory)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintln(os.Stderr, err.Error())
 		}
 
 		fmt.Printf("Decryption status: %s\n\n", services.GetDecryptedStatusString(decryptStatus))
