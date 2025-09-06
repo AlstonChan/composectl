@@ -60,7 +60,7 @@ func GetActiveServiceState(projectDir string) (composeFileStatus, error) {
 		return composeFileStatus{ServiceState: Unused, Label: ""}, err
 	}
 
-	var activeService composeFileStatus
+	var activeService composeFileStatus = services[0]
 	for _, service := range services {
 		if service.ServiceState == PartiallyRunning || service.ServiceState == Running {
 			activeService = service
@@ -137,21 +137,27 @@ func GetServiceState(projectDir string, composeFile string) (ServiceState, error
 	}
 
 	if len(services) == 0 {
-		return Stopped, nil
+		return Unused, nil
 	}
 
 	runningCount := 0
+	stoppedCount := 0
 	for _, svc := range services {
-		if svc.Status == "running" {
+		switch svc.Status {
+		case "running":
 			runningCount++
+		case "stopped":
+			stoppedCount++
 		}
 	}
 
 	switch {
 	case runningCount == len(services):
 		return Running, nil
-	case runningCount > 0:
+	case runningCount > 0 && stoppedCount > 0:
 		return PartiallyRunning, nil
+	case stoppedCount == len(services):
+		return Stopped, nil
 	default:
 		return Unused, nil
 	}

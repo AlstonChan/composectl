@@ -52,7 +52,9 @@ func processService(channel <-chan Service, result []ServiceOutput, counter *int
 		state, err := services.GetActiveServiceState(serviceDirectory)
 		if err != nil {
 			log.Fatal(err)
+			return
 		}
+
 		var serviceStatus string = services.GetServiceStatusString(state.ServiceState)
 		if state.Label != "" {
 			serviceStatus += " (" + state.Label + ")"
