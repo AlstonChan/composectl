@@ -11,6 +11,7 @@ services:
     image: offen/docker-volume-backup:v2
     environment:
       BACKUP_FILENAME: test-backup-%Y-%m-%dT%H-%M-%S.tar.gz
+      GPG_PASSPHRASE: test
     volumes:
       # Mount the actual named volume to backup
       - test-data:/backup/test-data:ro

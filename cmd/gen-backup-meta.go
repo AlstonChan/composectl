@@ -29,20 +29,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const JSON_METADATA_VERSION = "1.0"
-
-type Metadata struct {
-	Version     string   `json:"version"`
-	Service     string   `json:"service"`
-	Timestamp   string   `json:"timestamp"`
-	ComposeFile string   `json:"compose_file"`
-	Volumes     []Volume `json:"volumes"`
-}
-type Volume struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-}
-
 var genBackupMetaCmd = &cobra.Command{
 	Use:   "gen-backup-meta",
 	Short: "Generate the json metadata file for a backup tarball",
@@ -90,19 +76,19 @@ var genBackupMetaCmd = &cobra.Command{
 			return fmt.Errorf("unable to parse the docker compose file: %v", err)
 		}
 
-		services, ok := compose["services"].(map[string]any)
+		composeServices, ok := compose["services"].(map[string]any)
 		if !ok {
 			return fmt.Errorf("the docker compose file does not have a service section")
 		}
 
 		// Determine which volume contains the backup path
-		var tempVolumeMappings []Volume = make([]Volume, 0)
+		var tempVolumeMappings []services.Volume = make([]services.Volume, 0)
 
 		// Get the specified service first that defaulted to "backup"
-		if service, ok := services[serviceName]; ok {
+		if s, ok := composeServices[serviceName]; ok {
 			fmt.Printf("Service \"%s\" found\n", serviceName)
 
-			serviceMap, ok := service.(map[string]any)
+			serviceMap, ok := s.(map[string]any)
 			if !ok {
 				return fmt.Errorf("unable to parse the service \"%s\" correctly", serviceName)
 			}
@@ -125,7 +111,7 @@ var genBackupMetaCmd = &cobra.Command{
 							}
 
 							// Temporarily save the data to a slice
-							tempVolumeMappings = append(tempVolumeMappings, Volume{Name: volumePath[0], Path: volumePath[1]})
+							tempVolumeMappings = append(tempVolumeMappings, services.Volume{Name: volumePath[0], Path: volumePath[1]})
 						} else {
 							fmt.Printf("  %d: (non-string value: %#v)\n", i+1, v)
 						}
@@ -147,7 +133,7 @@ var genBackupMetaCmd = &cobra.Command{
 			return fmt.Errorf("the docker compose file does not have a volumes section")
 		}
 
-		var volumeMappings []Volume = make([]Volume, 0)
+		var volumeMappings []services.Volume = make([]services.Volume, 0)
 
 		// Loop through each entry in volumes. We will filter out local volume mount here
 		// and also determine the actual volume name and the path of the data
@@ -163,19 +149,19 @@ var genBackupMetaCmd = &cobra.Command{
 					// Get the volume name
 					if volumes, ok := volumeMap["name"]; ok {
 						if volumeName, ok := volumes.(string); ok {
-							volumeMappings = append(volumeMappings, Volume{Name: volumeName, Path: v.Path})
+							volumeMappings = append(volumeMappings, services.Volume{Name: volumeName, Path: v.Path})
 						} else {
 							fmt.Println("volumes field cannot be parsed correctly")
 						}
 					} else {
 						// Append the directory name of the docker compose file and concat them with a underscore
-						volumeMappings = append(volumeMappings, Volume{Name: serviceDirName + "_" + v.Name, Path: v.Path})
+						volumeMappings = append(volumeMappings, services.Volume{Name: serviceDirName + "_" + v.Name, Path: v.Path})
 					}
 				} else {
 					fmt.Printf("volume %q don't have any settings\n", v.Name)
 
 					// Append the directory name of the docker compose file and concat them with a underscore
-					volumeMappings = append(volumeMappings, Volume{Name: serviceDirName + "_" + v.Name, Path: v.Path})
+					volumeMappings = append(volumeMappings, services.Volume{Name: serviceDirName + "_" + v.Name, Path: v.Path})
 				}
 			} else {
 				// Happens because the volume is local mount
@@ -187,17 +173,17 @@ var genBackupMetaCmd = &cobra.Command{
 		// name entry first before defaulting to serviceDirName
 		dockerServiceName, ok := compose["name"].(string)
 
-		var service string
+		var finalServiceName string
 		if ok {
-			service = dockerServiceName
+			finalServiceName = dockerServiceName
 		} else {
-			service = serviceDirName
+			finalServiceName = serviceDirName
 		}
 
 		// Create the metadata
-		var metadata Metadata = Metadata{
-			Version:     JSON_METADATA_VERSION,
-			Service:     service,
+		var metadata services.Metadata = services.Metadata{
+			Version:     services.JSON_METADATA_VERSION,
+			Service:     finalServiceName,
 			Timestamp:   time.Now().Format(time.RFC3339),
 			ComposeFile: filepath.Base(dockerComposeFilePath),
 			Volumes:     volumeMappings,
@@ -222,7 +208,7 @@ var genBackupMetaCmd = &cobra.Command{
 			return fmt.Errorf("unable to write to file %v", targetFile)
 		}
 
-		fmt.Printf("Backup metadata written to %s for service %s\n", fullOutputPath, service)
+		fmt.Printf("Backup metadata written to %s for service %s\n", fullOutputPath, finalServiceName)
 
 		return nil
 	},
