@@ -17,17 +17,17 @@ limitations under the License.
 package services
 
 import (
-	"archive/tar"
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/ProtonMail/gopenpgp/v3/crypto"
@@ -67,7 +67,35 @@ func GpgDecryptFile(encryptedContent []byte, passphrase []byte) (*crypto.Verifie
 }
 
 func PromptPassphrase() ([]byte, error) {
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.GetState(fd)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get terminal state: %w", err)
+	}
+
+	// Set up signal handler
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTSTP, syscall.SIGHUP)
+	defer signal.Stop(sigCh)
+
+	// Restore terminal if signal received
+	go func() {
+		for range sigCh {
+			_ = term.Restore(fd, oldState)
+			os.Exit(1)
+		}
+	}()
+
+	// force restore on panic
+	defer func() {
+		if r := recover(); r != nil {
+			_ = term.Restore(fd, oldState)
+			panic(r)
+		}
+	}()
+
 	fmt.Fprint(os.Stderr, "Enter GPG passphrase: ")
+
 	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Fprintln(os.Stderr) // move to new line after input
 	if err != nil {
@@ -78,7 +106,7 @@ func PromptPassphrase() ([]byte, error) {
 }
 
 func RestoreAllDockerVolume(docker *client.Client, ctx context.Context, content []byte) error {
-	data, err := readFileFromTarGz(content, "/backup/backup.json")
+	data, err := ReadFileFromTarGz(content, "/backup/backup.json")
 	if err != nil {
 		return fmt.Errorf("unable to read the /backup/backup.json: %v", err)
 	}
@@ -214,37 +242,4 @@ func RestoreContentToDockerVolume(docker *client.Client, ctx context.Context,
 
 	fmt.Printf("Restored data to volume %s completed\n", targetVolume.Name)
 	return nil
-}
-
-func readFileFromTarGz(content []byte, targetPath string) ([]byte, error) {
-	// wrap with gzip
-	gz, err := gzip.NewReader(bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-	defer gz.Close()
-
-	// create tar reader
-	tr := tar.NewReader(gz)
-
-	// iterate tar entries
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			// reached end, file not found
-			return nil, fmt.Errorf("file %s not found in tar.gz", targetPath)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		if header.Name == targetPath {
-			// found file, read contents
-			data, err := io.ReadAll(tr)
-			if err != nil {
-				return nil, err
-			}
-			return data, nil
-		}
-	}
 }

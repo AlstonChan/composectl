@@ -17,7 +17,11 @@ limitations under the License.
 package services
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -112,4 +116,39 @@ func ExtractComposeVariant(path string) (string, error) {
 
 	// m[2] contains the optional "middle part"
 	return m[2], nil
+}
+
+// Given a gzip tar file content, return the data from the matching targetPath
+// if any
+func ReadFileFromTarGz(content []byte, targetPath string) ([]byte, error) {
+	// wrap with gzip
+	gz, err := gzip.NewReader(bytes.NewReader(content))
+	if err != nil {
+		return nil, err
+	}
+	defer gz.Close()
+
+	// create tar reader
+	tr := tar.NewReader(gz)
+
+	// iterate tar entries
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			// reached end, file not found
+			return nil, fmt.Errorf("file %s not found in tar.gz", targetPath)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if header.Name == targetPath {
+			// found file, read contents
+			data, err := io.ReadAll(tr)
+			if err != nil {
+				return nil, err
+			}
+			return data, nil
+		}
+	}
 }
