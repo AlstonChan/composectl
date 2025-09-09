@@ -78,6 +78,19 @@ execute a command.`,
 				}
 
 				fmt.Printf("Age public key unset\n")
+			case strings.HasPrefix(argument, CONFIG_AWS_S3_BUCKET):
+				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
+
+				viper.Set(CONFIG_AWS_S3_BUCKET, "")
+				if err := viper.WriteConfig(); err != nil {
+					// If config file doesn’t exist, create it
+					if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+						viper.SafeWriteConfig()
+					}
+					errorString = err.Error()
+				}
+
+				fmt.Printf("WS default restoration s3 bucket unset\n")
 			default:
 				errorString = "Configuration not recognized: " + argument
 			}

@@ -30,8 +30,12 @@ import (
 )
 
 const (
-	CONFIG_REPO_PATH  = "repo-path"
+	// The default path to the SelfHostCompose repository
+	CONFIG_REPO_PATH = "repo-path"
+	// The default age publick key to use for encryption
 	CONFIG_AGE_PUBKEY = "age-pubkey"
+	// The default aws s3 bucket to restore the backup from
+	CONFIG_AWS_S3_BUCKET = "s3-bucket"
 )
 
 var setCmd = &cobra.Command{
@@ -53,6 +57,7 @@ the path of the .composectl directory`,
 	ValidArgs: []string{
 		CONFIG_REPO_PATH,
 		CONFIG_AGE_PUBKEY,
+		CONFIG_AWS_S3_BUCKET,
 	},
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -121,6 +126,27 @@ the path of the .composectl directory`,
 				}
 
 				fmt.Printf("Age public key set to %s\n", value)
+			case strings.HasPrefix(argument, CONFIG_AWS_S3_BUCKET):
+				parts := strings.SplitN(argument, "=", 2) // Split into key and value
+				if len(parts) != 2 {
+					errorString = "invalid format, expected key=value"
+					break
+				}
+				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
+
+				key := parts[0]
+				value := parts[1]
+
+				viper.Set(key, value)
+				if err := viper.WriteConfig(); err != nil {
+					// If config file doesn’t exist, create it
+					if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+						viper.SafeWriteConfig()
+					}
+					errorString = err.Error()
+				}
+
+				fmt.Printf("AWS default restoration s3 bucket set to %s\n", value)
 			default:
 				errorString = "Configuration not recognized: " + argument
 			}

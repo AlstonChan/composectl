@@ -26,6 +26,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -242,4 +243,42 @@ func RestoreContentToDockerVolume(docker *client.Client, ctx context.Context,
 
 	fmt.Printf("Restored data to volume %s completed\n", targetVolume.Name)
 	return nil
+}
+
+func stripBackupExtension(filename string) string {
+	extensions := []string{
+		".tar.gz.gpg",
+		".tar.gz",
+		".tar",
+	}
+	for _, ext := range extensions {
+		if strings.HasSuffix(filename, ext) {
+			return strings.TrimSuffix(filename, ext)
+		}
+	}
+	return filename
+}
+
+func ParseBackupTime(key, serviceName string) (time.Time, error) {
+	// Get just the filename: e.g. "db-backup-2025-09-08T12-30-00.tar.gz"
+	filename := filepath.Base(key)
+
+	// Prefix we expect: "{serviceName}-backup-"
+	prefix := serviceName + "-backup-"
+	if !strings.HasPrefix(filename, prefix) {
+		return time.Time{}, fmt.Errorf("filename %s does not match expected format", filename)
+	}
+
+	// Strip prefix and suffix → "2025-09-08T12-30-00"
+	nameWithoutExt := stripBackupExtension(filename)
+	timestampStr := strings.TrimPrefix(nameWithoutExt, prefix)
+
+	// Parse using Go’s reference layout (must match format exactly)
+	layout := "2006-01-02T15-04-05"
+	parsedTime, err := time.Parse(layout, timestampStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to parse time from %s: %w", filename, err)
+	}
+
+	return parsedTime, nil
 }

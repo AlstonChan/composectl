@@ -21,10 +21,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/AlstonChan/composectl/internal/config"
 	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/moby/moby/client"
 )
@@ -33,32 +36,33 @@ var restoreCmd = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore the service's data from backup",
 	Run: func(cmd *cobra.Command, args []string) {
-		// name, _ := cmd.Flags().GetString("name")
-		// sequence, _ := cmd.Flags().GetInt("sequence")
+		name, _ := cmd.Flags().GetString("name")
+		sequence, _ := cmd.Flags().GetInt("sequence")
 
 		path, _ := cmd.Flags().GetString("path")
 		remote, _ := cmd.Flags().GetString("remote")
 
 		dayOffset, _ := cmd.Flags().GetInt("day")
 
-		// if name == "" && sequence <= 0 {
-		// 	fmt.Println("Either the service name or sequence must be specified correctly!")
-		// 	return
-		// }
+		if name == "" && sequence <= 0 {
+			fmt.Fprintln(os.Stderr, "Either the service name or sequence must be specified correctly!")
+			return
+		}
 
 		if path == "" && remote == "" {
-			fmt.Println("Either the backup file path or remote location must be specified!")
+			fmt.Fprintln(os.Stderr, "Either the backup file path or remote location must be specified!")
 			return
 		}
 		if path != "" && remote != "" {
-			fmt.Println("Cannot use both path and remote to restore backup")
+			fmt.Fprintln(os.Stderr, "Cannot use both path and remote to restore backup")
 			return
 		}
 
 		if dayOffset <= 0 {
-			fmt.Println("day offset must be a positive number")
+			fmt.Fprintln(os.Stderr, "day offset must be a positive number")
 			return
 		}
+		var dateToRestoreAfter = time.Now().AddDate(0, 0, -dayOffset+1)
 
 		if err := deps.CheckDockerDeps(0, 2); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
@@ -71,28 +75,28 @@ var restoreCmd = &cobra.Command{
 			return
 		}
 
-		// if repoPath == "" {
-		// 	services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-		// 	if val := viper.GetString(CONFIG_REPO_PATH); val != "" {
-		// 		repoPath = val
-		// 	}
-		// }
+		if repoPath == "" {
+			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
+			if val := viper.GetString(CONFIG_REPO_PATH); val != "" {
+				repoPath = val
+			}
+		}
 
-		// repoRoot, err := services.ResolveRepoRoot(repoPath)
-		// if err != nil {
-		// 	fmt.Fprintf(os.Stderr, "Error resolving repo root: %v\n", err)
-		// 	return
-		// }
+		repoRoot, err := services.ResolveRepoRoot(repoPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error resolving repo root: %v\n", err)
+			return
+		}
 
-		// serviceLists, err := services.ValidateService(repoRoot, &sequence, &name)
-		// if err != nil {
-		// 	fmt.Fprintln(os.Stderr, err.Error())
-		// 	return
-		// }
+		serviceLists, err := services.ValidateService(repoRoot, &sequence, &name)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			return
+		}
 
-		// if serviceLists == nil && err == nil {
-		// 	return
-		// }
+		if serviceLists == nil && err == nil {
+			return
+		}
 
 		ctx := context.Background()
 		if path != "" {
@@ -135,7 +139,64 @@ var restoreCmd = &cobra.Command{
 				return
 			}
 		} else if remote != "" {
-			// Handle restoring backup from remote location
+			switch remote {
+			case "s3":
+				s3Client, err := services.GetAwsAccount(ctx)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				s3Bucket, err := services.GetS3BackupStoreBucket(ctx, s3Client, CONFIG_AWS_S3_BUCKET)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				bucketExists, err := services.ValidateS3BucketExists(ctx, s3Client, s3Bucket, name)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				if !bucketExists {
+					fmt.Fprintf(os.Stderr, "service directory not found: %v\n", name)
+					return
+				}
+
+				backupFilename, err := services.GetFileFromBucket(ctx, s3Client, s3Bucket, name, dateToRestoreAfter)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				fileData, err := services.S3DownloadToMemory(ctx, s3Client, s3Bucket, backupFilename)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				bytePassword, err := services.PromptPassphrase()
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				// GPG decrypt the content
+				decryptedContent, err := services.GpgDecryptFile(fileData, bytePassword)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				err = services.RestoreAllDockerVolume(dockerClient, ctx, decryptedContent.Bytes())
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+			case "azure":
+				fmt.Fprintln(os.Stderr, "Not implemented yet")
+			}
 		} else {
 			fmt.Fprintln(os.Stderr, "Internal application error, unknown decision tree")
 			return
@@ -145,9 +206,9 @@ var restoreCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(restoreCmd)
-	// restoreCmd.Flags().StringP("name", "n", "", "The name of the service")
-	// restoreCmd.Flags().IntP("sequence", "s", 0,
-	// 	"The sequence of the service. This args has precedence over the name args when both are specified")
+	restoreCmd.Flags().StringP("name", "n", "", "The name of the service")
+	restoreCmd.Flags().IntP("sequence", "s", 0,
+		"The sequence of the service. This args has precedence over the name args when both are specified")
 	restoreCmd.Flags().StringP("path", "p", "", "The path to the local backup file (mutually exclusive with --remote)")
 	restoreCmd.Flags().String("remote", "", "The remote location to restore the backup from (mutually exclusive with --path)")
 	restoreCmd.Flags().IntP("day", "d", 1, "Relative day offset for backup (1 = latest, 2 = yesterday, etc.)")
