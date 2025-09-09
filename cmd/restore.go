@@ -114,26 +114,30 @@ var restoreCmd = &cobra.Command{
 			}
 
 			// Read encrypted file
-			encBytes, err := os.ReadFile(fullBackupPath)
+			fileData, err := os.ReadFile(fullBackupPath)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Unable to read the file at %s: %v\n", fullBackupPath, err)
 				return
 			}
 
-			bytePassword, err := services.PromptPassphrase()
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
+			if filepath.Ext(fullBackupPath) == ".gpg" {
+				bytePassword, err := services.PromptPassphrase()
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				// GPG decrypt the content
+				decryptedContent, err := services.GpgDecryptFile(fileData, bytePassword)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+
+				fileData = decryptedContent.Bytes()
 			}
 
-			// GPG decrypt the content
-			decryptedContent, err := services.GpgDecryptFile(encBytes, bytePassword)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			}
-
-			err = services.RestoreAllDockerVolume(dockerClient, ctx, decryptedContent.Bytes())
+			err = services.RestoreAllDockerVolume(dockerClient, ctx, fileData)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return
@@ -176,20 +180,24 @@ var restoreCmd = &cobra.Command{
 					return
 				}
 
-				bytePassword, err := services.PromptPassphrase()
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					return
+				if filepath.Ext(backupFilename) == ".gpg" {
+					bytePassword, err := services.PromptPassphrase()
+					if err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						return
+					}
+
+					// GPG decrypt the content
+					decryptedContent, err := services.GpgDecryptFile(fileData, bytePassword)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						return
+					}
+
+					fileData = decryptedContent.Bytes()
 				}
 
-				// GPG decrypt the content
-				decryptedContent, err := services.GpgDecryptFile(fileData, bytePassword)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					return
-				}
-
-				err = services.RestoreAllDockerVolume(dockerClient, ctx, decryptedContent.Bytes())
+				err = services.RestoreAllDockerVolume(dockerClient, ctx, fileData)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
 					return
