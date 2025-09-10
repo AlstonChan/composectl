@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/AlstonChan/composectl/internal/config"
 	"github.com/AlstonChan/composectl/internal/services"
@@ -33,12 +32,9 @@ var unSetCmd = &cobra.Command{
 	Long: `Unset the configuration for the CLI application so
 that it will use the default option the next time you 
 execute a command.`,
-	Example: setConfigExample("unset", true),
-	ValidArgs: []string{
-		CONFIG_REPO_PATH,
-		CONFIG_AGE_PUBKEY,
-	},
-	Args: cobra.MinimumNArgs(1),
+	Example:   setConfigExample("unset", true),
+	ValidArgs: allConfigKey,
+	Args:      cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.Help()
@@ -51,54 +47,31 @@ execute a command.`,
 				break
 			}
 
-			switch {
-			case strings.HasPrefix(argument, CONFIG_REPO_PATH):
-				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
+			var hasMatchingConfig bool = false
+			for _, configKey := range allConfigKey {
+				if argument == configKey {
+					services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 
-				viper.Set(CONFIG_REPO_PATH, "")
-				if err := viper.WriteConfig(); err != nil {
-					// If config file doesn’t exist, create it
-					if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-						viper.SafeWriteConfig()
+					viper.Set(configKey, "")
+					if err := viper.WriteConfig(); err != nil {
+						// If config file doesn’t exist, create it
+						if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+							viper.SafeWriteConfig()
+						}
+						errorString = err.Error()
 					}
-					errorString = err.Error()
+
+					fmt.Printf("%s unset\n", configKey)
+					hasMatchingConfig = true
+					break
 				}
+			}
 
-				fmt.Printf("Repository path unset\n")
-			case strings.HasPrefix(argument, CONFIG_AGE_PUBKEY):
-				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-
-				viper.Set(CONFIG_AGE_PUBKEY, "")
-				if err := viper.WriteConfig(); err != nil {
-					// If config file doesn’t exist, create it
-					if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-						viper.SafeWriteConfig()
-					}
-					errorString = err.Error()
-				}
-
-				fmt.Printf("Age public key unset\n")
-			case strings.HasPrefix(argument, CONFIG_AWS_S3_BUCKET):
-				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-
-				viper.Set(CONFIG_AWS_S3_BUCKET, "")
-				if err := viper.WriteConfig(); err != nil {
-					// If config file doesn’t exist, create it
-					if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-						viper.SafeWriteConfig()
-					}
-					errorString = err.Error()
-				}
-
-				fmt.Printf("WS default restoration s3 bucket unset\n")
-			default:
+			if !hasMatchingConfig {
 				errorString = "Configuration not recognized: " + argument
 			}
 		}
-
-		if errorString != "" {
-			fmt.Fprintln(os.Stderr, errorString)
-		}
+		fmt.Fprintln(os.Stderr, errorString)
 	},
 }
 

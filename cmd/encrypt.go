@@ -40,7 +40,7 @@ var encryptCmd = &cobra.Command{
 		overwrite, _ := cmd.Flags().GetBool("overwrite")
 
 		if name == "" && sequence <= 0 {
-			fmt.Println("Either the service name or sequence must be specified correctly!")
+			fmt.Fprintln(os.Stderr, "Either the service name or sequence must be specified correctly!")
 			return
 		}
 

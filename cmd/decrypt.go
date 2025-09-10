@@ -46,12 +46,12 @@ var decryptCmd = &cobra.Command{
 		overwrite, _ := cmd.Flags().GetBool("overwrite")
 
 		if name == "" && sequence <= 0 {
-			fmt.Println("Either the service name or sequence must be specified correctly!")
+			fmt.Fprintln(os.Stderr, "Either the service name or sequence must be specified correctly!")
 			return
 		}
 
 		if !decryptAll && index <= 0 {
-			fmt.Println("You have to specify an index to decrypt or use \"-a\" to decrypt all secrets")
+			fmt.Fprintln(os.Stderr, "You have to specify an index to decrypt or use \"-a\" to decrypt all secrets")
 			return
 		}
 

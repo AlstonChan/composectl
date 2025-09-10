@@ -38,6 +38,12 @@ const (
 	CONFIG_AWS_S3_BUCKET = "s3-bucket"
 )
 
+var allConfigKey = []string{
+	CONFIG_REPO_PATH,
+	CONFIG_AGE_PUBKEY,
+	CONFIG_AWS_S3_BUCKET,
+}
+
 var setCmd = &cobra.Command{
 	Use:   "set ...",
 	Short: "Set the configuration for the application",
@@ -53,13 +59,9 @@ The .composectl directory will be created besides the
 executable unless the CONFIG_DIR_ENV env is set to
 the path of the .composectl directory`,
 		"CONFIG_DIR_ENV", config.ConfigDirEnv),
-	Example: setConfigExample("set", false),
-	ValidArgs: []string{
-		CONFIG_REPO_PATH,
-		CONFIG_AGE_PUBKEY,
-		CONFIG_AWS_S3_BUCKET,
-	},
-	Args: cobra.MinimumNArgs(1),
+	Example:   setConfigExample("set", false),
+	ValidArgs: allConfigKey,
+	Args:      cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.Help()
@@ -72,22 +74,23 @@ the path of the .composectl directory`,
 				break
 			}
 
+			parts := strings.SplitN(argument, "=", 2) // Split into key and value
+			if len(parts) != 2 {
+				errorString = "invalid format, expected key=value"
+				break
+			}
+			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
+
+			key := parts[0]
+			value := parts[1]
+
 			switch {
 			case strings.HasPrefix(argument, CONFIG_REPO_PATH):
-				parts := strings.SplitN(argument, "=", 2) // Split into key and value
-				if len(parts) != 2 {
-					errorString = "invalid format, expected key=value"
-					break
-				}
-				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-
-				key := parts[0]
-				value := parts[1]
-
 				// Resolve to absolute path
 				absPath, err := filepath.Abs(value)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err.Error())
+					continue
 				}
 				viper.Set(key, absPath)
 
@@ -98,22 +101,11 @@ the path of the .composectl directory`,
 					}
 					errorString = err.Error()
 				}
-
 				fmt.Printf("Repo root set to %s\n", absPath)
 			case strings.HasPrefix(argument, CONFIG_AGE_PUBKEY):
-				parts := strings.SplitN(argument, "=", 2) // Split into key and value
-				if len(parts) != 2 {
-					errorString = "invalid format, expected key=value"
-					break
-				}
-				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-
-				key := parts[0]
-				value := parts[1]
-
 				if utf8.RuneCountInString(value) != 62 {
 					fmt.Printf("The public key provided is invalid")
-					return
+					continue
 				}
 
 				viper.Set(key, value)
@@ -124,19 +116,8 @@ the path of the .composectl directory`,
 					}
 					errorString = err.Error()
 				}
-
 				fmt.Printf("Age public key set to %s\n", value)
 			case strings.HasPrefix(argument, CONFIG_AWS_S3_BUCKET):
-				parts := strings.SplitN(argument, "=", 2) // Split into key and value
-				if len(parts) != 2 {
-					errorString = "invalid format, expected key=value"
-					break
-				}
-				services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
-
-				key := parts[0]
-				value := parts[1]
-
 				viper.Set(key, value)
 				if err := viper.WriteConfig(); err != nil {
 					// If config file doesn’t exist, create it
@@ -145,7 +126,6 @@ the path of the .composectl directory`,
 					}
 					errorString = err.Error()
 				}
-
 				fmt.Printf("AWS default restoration s3 bucket set to %s\n", value)
 			default:
 				errorString = "Configuration not recognized: " + argument

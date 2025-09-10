@@ -34,10 +34,13 @@ var configCmd = &cobra.Command{
 
 		var repoPath string = viper.GetString(CONFIG_REPO_PATH)
 		var agePubKey string = viper.GetString(CONFIG_AGE_PUBKEY)
+		var s3Bucket string = viper.GetString(CONFIG_AWS_S3_BUCKET)
 
 		fmt.Println("composectl configuration")
 		fmt.Printf("Repository path: %s\n", orDefault(repoPath, "Not set"))
 		fmt.Printf("Age public key: %s\n", orDefault(agePubKey, "Not set"))
+		fmt.Println("Self Host Compose configuration")
+		fmt.Printf("AWS S3 bucket to restore backup: %s\n", orDefault(s3Bucket, "Not set"))
 	},
 }
 
