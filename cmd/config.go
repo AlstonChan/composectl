@@ -26,6 +26,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// This config command shows all the configuration for the
+// composectl applicationset by the `composectl set` command
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Show the configuration that has been set for the application",
@@ -44,6 +46,8 @@ var configCmd = &cobra.Command{
 	},
 }
 
+// orDefault returns val if it is not empty,
+// otherwise returns fallback.
 func orDefault(val, fallback string) string {
 	if val == "" {
 		return fallback
