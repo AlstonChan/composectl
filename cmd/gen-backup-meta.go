@@ -29,9 +29,28 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// This commands generate a json metadata file (backup.json by default if
+// a filename isn't specify in the path) that records the volume and its
+// path.
+// This file should be packaged together in the gzip tarball for the
+// named volume backup, so that 'composectl restore' command will use
+// the json metadata file to restore the backup data to the correct
+// named volume.
 var genBackupMetaCmd = &cobra.Command{
 	Use:   "gen-backup-meta",
 	Short: "Generate the json metadata file for a backup tarball",
+	Example: `  Generate a json metadata file mapping of docker volume:
+
+  # specify the path to the docker compose
+  composectl gen-backup-meta -i ./gitea/compose.yml -o ./gitea
+
+  # specify the path to the docker compose and the json file name
+  composectl gen-backup-meta -i ./gitea/compose.yml -o ./gitea/metadata.json
+
+  # specify the compose service that specify the backup volume (default to 
+  service 'backup')
+  composectl gen-backup-meta -i ./gitea/compose.yml -o ./gitea -s gitea-back
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		output, _ := cmd.Flags().GetString("output")
 		input, _ := cmd.Flags().GetString("input")

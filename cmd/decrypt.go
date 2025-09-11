@@ -27,6 +27,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+// This decrypt command decrypts the encrypted secrets using sops
+// with age encryption protocol.
+// To decrypt the age encrypted secrets, the private key that
+// correspond the public key used to encrypted the file is
+// needed. It will search for all location that sops by default
+// would source the keys.txt file.
 var decryptCmd = &cobra.Command{
 	Use:   "decrypt",
 	Short: "Decrypt the secrets of the specified service",
@@ -37,6 +43,23 @@ var decryptCmd = &cobra.Command{
 	
 	To get the index of the secret that you want to decrypt. Use 
 	the service command`,
+	Example: `  Decrypt a Docker service's secrets:
+
+  # By service sequence (from 'composectl list')
+  composectl decrypt -s 12 -a
+
+  # By service name (from 'composectl list')
+  composectl decrypt -n gitea -a
+
+  # for a particular secret only by index (as per 'composectl service')
+  composectl decrypt -s 12 -i 1
+
+  # for all secrets of the service
+  composectl decrypt -n gitea -a
+
+  # to overwrite existing secrets
+  composectl decrypt -n gitea -i 1 -o
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		name, _ := cmd.Flags().GetString("name")
 		sequence, _ := cmd.Flags().GetInt("sequence")

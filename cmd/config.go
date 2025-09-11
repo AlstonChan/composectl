@@ -31,6 +31,8 @@ import (
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Show the configuration that has been set for the application",
+	Example: `  To show all the application configuration:
+    composectl config`,
 	Run: func(cmd *cobra.Command, args []string) {
 		services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
 

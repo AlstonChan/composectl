@@ -28,9 +28,35 @@ import (
 	"github.com/spf13/viper"
 )
 
+// This command encrypts a file into secrets given the file path
+// that is relative to the service, so that you do not have to
+// write a long path.
+// This command will automatically detect the file type based
+// on the target file extension, and use the correct format
+// for encryption. As for file format that isn't recognize, it
+// will be encrypted as a json file, but decryption with the
+// 'composectl decrypt' would recognize it and still decrypt
+// it back to the original file
 var encryptCmd = &cobra.Command{
 	Use:   "encrypt",
 	Short: "Encrypt the secrets of the specified service",
+	Example: `  Encrypt a docker service secrets:
+
+  # by service sequence (as per 'composectl list') for a file relative to the service root
+  composectl encrypt -s 12 -f .env
+
+  # by service name (as per 'composectl list') for a file relative to the service root
+  composectl encrypt -n gitea -f .app.ini
+
+  # to overwrite existing encrypted secret
+  composectl encrypt -n gitea -f private-key.pem -o
+
+  # for all secrets of the service
+  composectl decrypt -n gitea -a
+
+  # to specify a age public key if not set with 'composectl set'
+  composectl encrypt -n gitea -f config.yaml -p age1....
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		name, _ := cmd.Flags().GetString("name")
 		sequence, _ := cmd.Flags().GetInt("sequence")

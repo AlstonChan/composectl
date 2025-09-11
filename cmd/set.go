@@ -44,6 +44,9 @@ var allConfigKey = []string{
 	CONFIG_AWS_S3_BUCKET,
 }
 
+// Set the configuration for the composectl application, so
+// that you can avoid specifying a flag everytime a relavant
+// command is run that uses the config
 var setCmd = &cobra.Command{
 	Use:   "set ...",
 	Short: "Set the configuration for the application",

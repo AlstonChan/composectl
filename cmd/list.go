@@ -66,9 +66,24 @@ func processService(channel <-chan Service, result []ServiceOutput, counter *int
 	}
 }
 
+// This command list all the service in the SelfHostCompose
+// repository and showing the status of each services.
+// This is the primary way to know the sequence number of
+// the service, so that you can avoid typing the long
+// service name with the -n flag and use -s flag instead.
+// It will show you the status of docker, whether the service
+// is running or not, and the decryption status of the secrets
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all services in the self-host repo with status",
+	Example: `  To list all the available service in the repository:
+    
+	# using the default repo-path set by 'composectl set'
+	composectl list
+
+	# override the default repo-path
+	composectl list -r ../SelfHostCompose
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := deps.CheckDockerDeps(0, 2); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)

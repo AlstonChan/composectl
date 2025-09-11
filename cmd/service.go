@@ -31,6 +31,14 @@ import (
 var serviceCmd = &cobra.Command{
 	Use:   "service",
 	Short: "Show the details of the specified service",
+	Example: `  To show the details of a service:
+    
+	# by service sequence (as per 'composectl list')
+	composectl service -s 12 -a
+
+	# by service name (as per 'composectl list')
+	composectl service -n gitea -a
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		name, _ := cmd.Flags().GetString("name")
 		sequence, _ := cmd.Flags().GetInt("sequence")

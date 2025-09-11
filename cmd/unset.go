@@ -26,6 +26,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// This command unsets a configuration set by
+// 'composectl set' to reset the configuration
 var unSetCmd = &cobra.Command{
 	Use:   "unset ...",
 	Short: "Unset the configuration for the application",

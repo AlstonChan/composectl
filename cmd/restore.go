@@ -32,9 +32,26 @@ import (
 	"github.com/moby/moby/client"
 )
 
+// Restore the backup from the tarball gzip file, encrypted
+// with gpg or not.
+// When the named volume is restored from a remote location
+// like s3, it will prompt a interactive selection menu to
+// select a bucket to restore backup if a default bucket
+// is not configured via 'composectl set'.
 var restoreCmd = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore the service's data from backup",
+	Example: `  To restore backup to named volume:
+    
+	# restore backup from local path
+	composectl restore -s 6 -p /home/user/backup/bak.tar.gz.gpg
+
+	# restore latest backup from remote location - s3
+	composectl restore -s 6 -r s3
+
+	# restore the latest 7th backup from remote location - s3
+	composectl restore -s 6 -r s3 -d 7
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		name, _ := cmd.Flags().GetString("name")
 		sequence, _ := cmd.Flags().GetInt("sequence")
