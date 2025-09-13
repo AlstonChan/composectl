@@ -25,10 +25,8 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/ProtonMail/gopenpgp/v3/crypto"
@@ -74,18 +72,18 @@ func PromptPassphrase() ([]byte, error) {
 		return nil, fmt.Errorf("failed to get terminal state: %w", err)
 	}
 
-	// Set up signal handler
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTSTP, syscall.SIGHUP)
-	defer signal.Stop(sigCh)
+	// // Set up signal handler
+	// sigCh := make(chan os.Signal, 1)
+	// signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTSTP, syscall.SIGHUP)
+	// defer signal.Stop(sigCh)
 
-	// Restore terminal if signal received
-	go func() {
-		for range sigCh {
-			_ = term.Restore(fd, oldState)
-			os.Exit(1)
-		}
-	}()
+	// // Restore terminal if signal received
+	// go func() {
+	// 	for range sigCh {
+	// 		_ = term.Restore(fd, oldState)
+	// 		os.Exit(1)
+	// 	}
+	// }()
 
 	// force restore on panic
 	defer func() {
