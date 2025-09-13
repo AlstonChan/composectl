@@ -26,135 +26,25 @@ A simple command line tool for a docker compose repository to track running/decr
 
 4. Run `./composectl` to see the output
 
-### Using the commands
+### See the documentation site locally
 
-1. List all the available docker service and see their status
+The documentation site uses [cobra doc gen](https://pkg.go.dev/github.com/spf13/cobra@v1.10.1/doc) to generate documentation of the cli app, then uses [Hugo](https://gohugo.io/) for static site generation of the markdown file.
 
-   ```bash
-   $ composectl list
-   ```
+So you need to make sure that you have `hugo` binary installed in your local machine to run
 
-   For self host compose repository at other path
+1. After cloning the repository into your machine, change directory to `docs`
 
    ```bash
-   $ composectl list --repo-path=../../SelfHostCompose
+   cd docs
    ```
 
-2. See all _files_ of a docker service and its status
+2. Run the hugo development server
 
-   - by service sequence (as per `composectl list`)
+   ```bash
+   hugo server
+   ```
 
-      ```bash
-      $ composectl service -s 12 -a
-      ```
-
-   - by service name (as per `composectl list`)
-
-      ```bash
-      $ composectl service -n gitea -a
-      ```
-
-3. See all _secrets_ of a docker service and its status
-
-   - by service sequence (as per `composectl list`)
-
-      ```bash
-      $ composectl service -s 12
-      ```
-
-   - by service name (as per `composectl list`)
-
-      ```bash
-      $ composectl service -n gitea
-      ``` 
-
-4. Set the configuration/setting for the CLI application:
-
-   - Set a `age` public key that will be used to encrypt secrets
-
-      ```bash
-      $ composectl set age-pubkey=age1....
-      ```
-
-   - Set the root of the self host compose repository
-
-      ```bash
-      $ composectl set repo-path=../SelfHostCompose
-      ```
-
-      Note that using `--repo-path` will always override this option
-
-5. Unset the configuration/setting for the CLI application so tthat it uses default option
-
-   - Unset a `age` public key
-
-      ```bash
-      $ composectl unset age-pubkey
-      ```
-
-   - Unset the root of the self host compose repository
-
-      ```bash
-      $ composectl unset repo-path
-      ```
-
-6. Decrypt a docker service secrets
-
-   - by service sequence (as per `composectl list`)
-
-      ```bash
-      $ composectl decrypt -s 12 -a
-      ```
-
-   - by service name (as per `composectl list`)
-
-      ```bash
-      $ composectl decrypt -n gitea -a
-      ``` 
-   
-   - for a particular secret only by index (as per `composectl service`)
-
-      ```bash
-      $ composectl decrypt -s 12 -i 1
-      ```
-
-   - for all secrets of the service
-
-      ```bash
-      $ composectl decrypt -n gitea -a
-      ``` 
-
-   - to overwrite existing secrets
-
-      ```bash
-      $ composectl decrypt -n gitea -i 1 -o
-      ``` 
-
-7. Encrypt a docker service secrets
-
-   - by service sequence (as per `composectl list`) for a file relative to the service root
-
-      ```bash
-      $ composectl encrypt -s 12 -f .env
-      ```
-
-   - by service name (as per `composectl list`) for a file relative to the service root
-
-      ```bash
-      $ composectl encrypt -n gitea -f .env
-      ``` 
-
-   - to overwrite existing encrypted secret
-
-      ```bash
-      $ composectl encrypt -n gitea -f .env -o
-      ``` 
-
-   - to specify a `age` public key if not set with `composectl set`
-
-      ```bash
-      $ composectl encrypt -n gitea -f .env -p age1....
-      ``` 
+3. The docs site should be available at <http://localhost:1313>
 
 ## Contributing
 
