@@ -46,6 +46,18 @@ So you need to make sure that you have `hugo` binary installed in your local mac
 
 3. The docs site should be available at <http://localhost:1313>
 
+#### To regenerate the cobra docs for hugo server, run
+
+```bash
+go run main.go gen-docs -p ./docs/content/cli
+```
+
+or if you have a built binary
+
+```bash
+./composectl gen-docs -p ./docs/content/cli
+```
+
 ## Contributing
 
 To develop this application locally:
