@@ -22,6 +22,10 @@ enableGitInfo = true
 # You can remove related files with config below
 # disableKinds = ['taxonomy', 'taxonomyTerm']
 
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'
+    
 [params]
   # (Optional, default light) Sets color theme: light, dark or auto.
   # Theme 'auto' switches between dark and light modes based on browser/os preferences
