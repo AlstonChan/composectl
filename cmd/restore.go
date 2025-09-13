@@ -230,7 +230,7 @@ var restoreCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(restoreCmd)
+	RootCmd.AddCommand(restoreCmd)
 	restoreCmd.Flags().StringP("name", "n", "", "The name of the service")
 	restoreCmd.Flags().IntP("sequence", "s", 0,
 		"The sequence of the service. This args has precedence over the name args when both are specified")

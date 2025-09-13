@@ -152,5 +152,5 @@ $ composectl COMMAND age-pubkey=age1...`, "repo-path", CONFIG_REPO_PATH), "age-p
 }
 
 func init() {
-	rootCmd.AddCommand(setCmd)
+	RootCmd.AddCommand(setCmd)
 }

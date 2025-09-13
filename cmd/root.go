@@ -27,8 +27,8 @@ import (
 // the default path of the executable path.
 var repoPath string
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
 	Use:   "composectl",
 	Short: "A CLI tool for managing docker compose repository with secrets",
 	Long: `This CLI tool will manage your docker compose repository of all
@@ -44,9 +44,9 @@ of each service and prompt you whenever there is a missing secret.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+// This is called by main.main(). It only needs to happen once to the RootCmd.
 func Execute() {
-	err := rootCmd.Execute()
+	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
@@ -57,6 +57,6 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.composectl.yaml)")
-	rootCmd.PersistentFlags().StringVarP(&repoPath, CONFIG_REPO_PATH, "r", "", "Path to selfhost repo (overrides default location)")
+	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.composectl.yaml)")
+	RootCmd.PersistentFlags().StringVarP(&repoPath, CONFIG_REPO_PATH, "r", "", "Path to selfhost repo (overrides default location)")
 }

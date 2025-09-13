@@ -140,7 +140,7 @@ var decryptCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(decryptCmd)
+	RootCmd.AddCommand(decryptCmd)
 	decryptCmd.Flags().StringP("name", "n", "", "The name of the service")
 	decryptCmd.Flags().IntP("sequence", "s", 0, "The sequence of the service")
 	decryptCmd.Flags().BoolP("decrypt-all", "a", false, "Decrypt all secrets of the service")

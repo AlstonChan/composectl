@@ -126,7 +126,7 @@ var encryptCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(encryptCmd)
+	RootCmd.AddCommand(encryptCmd)
 	encryptCmd.Flags().StringP("name", "n", "", "The name of the service")
 	encryptCmd.Flags().IntP("sequence", "s", 0, "The sequence of the service")
 	encryptCmd.Flags().StringP("file", "f", "", "The filename/file path to encrypt of the service")

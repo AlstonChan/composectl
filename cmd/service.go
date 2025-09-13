@@ -28,6 +28,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// See the details of a service. This will show all the
+// compose file, the docker status of the compose file,
+// all secrets of the service by index, and optionally
+// all the files of the service
 var serviceCmd = &cobra.Command{
 	Use:   "service",
 	Short: "Show the details of the specified service",
@@ -126,7 +130,7 @@ var serviceCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(serviceCmd)
+	RootCmd.AddCommand(serviceCmd)
 	serviceCmd.Flags().StringP("name", "n", "", "The name of the service")
 	serviceCmd.Flags().IntP("sequence", "s", 0,
 		"The sequence of the service. This args has precedence over the name args when both are specified")

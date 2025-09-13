@@ -78,5 +78,5 @@ execute a command.`,
 }
 
 func init() {
-	rootCmd.AddCommand(unSetCmd)
+	RootCmd.AddCommand(unSetCmd)
 }

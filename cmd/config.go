@@ -58,5 +58,5 @@ func orDefault(val, fallback string) string {
 }
 
 func init() {
-	rootCmd.AddCommand(configCmd)
+	RootCmd.AddCommand(configCmd)
 }

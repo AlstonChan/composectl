@@ -234,7 +234,7 @@ var genBackupMetaCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(genBackupMetaCmd)
+	RootCmd.AddCommand(genBackupMetaCmd)
 	genBackupMetaCmd.Flags().StringP("output", "o", "", "The directory path to write the metadata to")
 	genBackupMetaCmd.Flags().StringP("input", "i", "", "The path of the docker compose file to generate the metadata for")
 	genBackupMetaCmd.Flags().String("service", "backup", "The docker service that does the backup")

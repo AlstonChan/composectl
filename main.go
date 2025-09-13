@@ -16,7 +16,9 @@ limitations under the License.
 
 package main
 
-import "github.com/AlstonChan/composectl/cmd"
+import (
+	"github.com/AlstonChan/composectl/cmd"
+)
 
 func main() {
 	cmd.Execute()
