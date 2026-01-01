@@ -29,6 +29,8 @@ import (
 	"strings"
 	"time"
 
+	"os/exec"
+
 	"github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/mount"
@@ -140,9 +142,11 @@ func RestoreContentToDockerVolume(docker *client.Client, ctx context.Context,
 	var command = []string{"sh", "-c", "tar -xzf - --strip-components=2 -C /restore " +
 		strings.TrimLeft(targetVolume.Path, "/")}
 
+	imageName := "busybox:stable-glibc"
+
 	tempContainer, err := docker.ContainerCreate(ctx,
 		&container.Config{
-			Image:        "busybox:stable-glibc",
+			Image:        imageName,
 			Cmd:          command,
 			Tty:          false,
 			OpenStdin:    true,
@@ -166,7 +170,49 @@ func RestoreContentToDockerVolume(docker *client.Client, ctx context.Context,
 		"", // Auto generate the name
 	)
 	if err != nil {
-		return fmt.Errorf("unable to create a temp docker container: %v", err)
+		// If the image is missing, try to pull it and retry once.
+		if strings.Contains(err.Error(), "No such image") || strings.Contains(err.Error(), "not found") {
+			fmt.Printf("Image %s not found locally, pulling with docker CLI...\n", imageName)
+			// Fall back to docker CLI pull to avoid importing extra docker types.
+			cmd := exec.Command("docker", "pull", imageName)
+			out, perr := cmd.CombinedOutput()
+			if perr != nil {
+				return fmt.Errorf("failed to pull image %s: %v: %s (original error: %v)", imageName, perr, string(out), err)
+			}
+			fmt.Printf("Pulled image %s: %s\n", imageName, string(out))
+
+			// Retry container create
+			tempContainer, err = docker.ContainerCreate(ctx,
+				&container.Config{
+					Image:        imageName,
+					Cmd:          command,
+					Tty:          false,
+					OpenStdin:    true,
+					StdinOnce:    true,
+					AttachStdin:  true,
+					AttachStdout: true,
+					AttachStderr: true,
+				},
+				&container.HostConfig{
+					Mounts: []mount.Mount{
+						{
+							Type:   mount.TypeVolume,
+							Source: targetVolume.Name,
+							Target: "/restore",
+						},
+					},
+					AutoRemove: true, // --rm
+				},
+				nil,
+				nil,
+				"",
+			)
+			if err != nil {
+				return fmt.Errorf("unable to create a temp docker container after pulling %s: %v", imageName, err)
+			}
+		} else {
+			return fmt.Errorf("unable to create a temp docker container: %v", err)
+		}
 	}
 
 	// 3. Attach to the container
