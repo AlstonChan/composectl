@@ -86,8 +86,12 @@ func FindComposeFiles(startingPath string) ([]string, error) {
 
 	err := filepath.WalkDir(startingPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			// If we cannot access a directory, just skip it
-			return nil
+			// If permission is denied for this path, skip it and continue walking.
+			if os.IsPermission(err) {
+				return nil
+			}
+			// Propagate other errors.
+			return err
 		}
 		if !d.IsDir() && dockerComposeFileRegex.MatchString(d.Name()) {
 			relPath, err := filepath.Rel(startingPath, path)

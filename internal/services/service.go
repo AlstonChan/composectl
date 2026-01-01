@@ -42,8 +42,12 @@ func ResolveServiceFiles(root string, serviceName string, secretsOnly bool) ([]S
 	var files []ServiceFile
 
 	var err error = filepath.Walk(servicePath, func(path string, info os.FileInfo, err error) error {
-		// If there was an error accessing the path, return it.
+		// If there was an error accessing the path, decide how to proceed.
 		if err != nil {
+			// If permission is denied for this path, skip it and continue walking.
+			if os.IsPermission(err) {
+				return nil
+			}
 			return err
 		}
 
