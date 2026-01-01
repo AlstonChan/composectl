@@ -1,6 +1,6 @@
 module github.com/AlstonChan/composectl
 
-go 1.24.6
+go 1.24.11
 
 require (
 	github.com/ProtonMail/gopenpgp/v3 v3.3.0
