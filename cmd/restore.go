@@ -28,8 +28,6 @@ import (
 	"github.com/AlstonChan/composectl/internal/services"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	"github.com/moby/moby/client"
 )
 
 // Restore the backup from the tarball gzip file, encrypted
@@ -81,14 +79,9 @@ var restoreCmd = &cobra.Command{
 		}
 		var dateToRestoreAfter = time.Now().AddDate(0, 0, -dayOffset+1)
 
-		if err := deps.CheckDockerDeps(0, 2); err != nil {
-			fmt.Fprintln(os.Stderr, "Error:", err)
-			return
-		}
-
-		dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		dockerClient, err := deps.GetDockerClient(0, 5)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Unable to create docker client: ", err)
+			fmt.Fprintln(os.Stderr, "Error:", err)
 			return
 		}
 

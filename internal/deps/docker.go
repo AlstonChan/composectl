@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/moby/moby/client"
 )
 
 func parseMajorVersion(output string) (int, error) {
@@ -65,4 +67,20 @@ func CheckDockerDeps(requiredBuildxMajor, requiredComposeMajor int) error {
 	}
 
 	return nil
+}
+
+// GetDockerClient runs the Docker dependency checks and returns an initialized
+// Docker client. This centralizes the Docker connectivity checks and creation
+// so callers can reuse the same logic without duplicating client creation.
+func GetDockerClient(requiredBuildxMajor, requiredComposeMajor int) (*client.Client, error) {
+	if err := CheckDockerDeps(requiredBuildxMajor, requiredComposeMajor); err != nil {
+		return nil, err
+	}
+
+	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, err
+	}
+
+	return dockerClient, nil
 }
