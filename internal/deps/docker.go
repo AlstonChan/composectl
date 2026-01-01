@@ -98,6 +98,7 @@ func GetDockerClient(requiredBuildxMajor, requiredComposeMajor int) (*client.Cli
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if _, err := dockerClient.Ping(ctx); err != nil {
+		_ = dockerClient.Close()
 		return nil, fmt.Errorf("unable to connect to Docker daemon: %v", err)
 	}
 
