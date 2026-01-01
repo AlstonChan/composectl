@@ -72,6 +72,15 @@ func CheckDockerDeps(requiredBuildxMajor, requiredComposeMajor int) error {
 // GetDockerClient runs the Docker dependency checks and returns an initialized
 // Docker client. This centralizes the Docker connectivity checks and creation
 // so callers can reuse the same logic without duplicating client creation.
+//
+// The caller is responsible for closing the returned client when it is no longer
+// needed to avoid leaking resources, for example:
+//
+//	dockerClient, err := deps.GetDockerClient(requiredBuildxMajor, requiredComposeMajor)
+//	if err != nil {
+//	    return err
+//	}
+//	defer dockerClient.Close()
 func GetDockerClient(requiredBuildxMajor, requiredComposeMajor int) (*client.Client, error) {
 	if err := CheckDockerDeps(requiredBuildxMajor, requiredComposeMajor); err != nil {
 		return nil, err
