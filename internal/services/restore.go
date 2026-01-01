@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"os/exec"
+	"os/signal"
 
 	"github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/moby/moby/api/types/container"
@@ -73,19 +74,21 @@ func PromptPassphrase() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get terminal state: %w", err)
 	}
+	// Ensure terminal is restored on any return
+	defer func() {
+		_ = term.Restore(fd, oldState)
+	}()
 
-	// // Set up signal handler
-	// sigCh := make(chan os.Signal, 1)
-	// signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTSTP, syscall.SIGHUP)
-	// defer signal.Stop(sigCh)
+	// Set up signal handler to restore terminal on interrupt/terminate
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	defer signal.Stop(sigCh)
 
-	// // Restore terminal if signal received
-	// go func() {
-	// 	for range sigCh {
-	// 		_ = term.Restore(fd, oldState)
-	// 		os.Exit(1)
-	// 	}
-	// }()
+	go func() {
+		<-sigCh
+		_ = term.Restore(fd, oldState)
+		os.Exit(1)
+	}()
 
 	// force restore on panic
 	defer func() {
