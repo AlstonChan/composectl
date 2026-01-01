@@ -17,9 +17,11 @@ limitations under the License.
 package deps
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/moby/moby/client"
 )
@@ -89,6 +91,14 @@ func GetDockerClient(requiredBuildxMajor, requiredComposeMajor int) (*client.Cli
 	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
+	}
+
+	// Verify daemon is reachable early so callers get a helpful error message
+	// instead of failing later during an operation.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if _, err := dockerClient.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("unable to connect to Docker daemon: %v", err)
 	}
 
 	return dockerClient, nil

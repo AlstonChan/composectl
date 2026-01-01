@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -75,6 +76,55 @@ func GetS3BackupStoreBucket(ctx context.Context, s3Client *awsS3.Client,
 	return s3Bucket, nil
 }
 
+// attemptExtractRegion searches common AWS error messages for a region hint
+// and returns it when found.
+func attemptExtractRegion(err error) (string, bool) {
+	if err == nil {
+		return "", false
+	}
+	// Example message contains: "Please send all future requests to this region: us-west-2"
+	// Match only valid-looking AWS region identifiers (e.g. us-west-2, ap-southeast-1)
+	re := regexp.MustCompile(`to this region: ([a-z]{2}-[a-z0-9-]+-\d+)`)
+	if m := re.FindStringSubmatch(err.Error()); len(m) >= 2 {
+		return m[1], true
+	}
+
+	// Some errors might include 'region: us-west-2' or similar
+	re2 := regexp.MustCompile(`region[:\s]+([a-z]{2}-[a-z0-9-]+-\d+)`)
+	if m := re2.FindStringSubmatch(err.Error()); len(m) >= 2 {
+		return m[1], true
+	}
+
+	return "", false
+}
+
+// rebuildS3ClientWithRegion loads AWS config with the specified region and
+// returns a new S3 client.
+func rebuildS3ClientWithRegion(ctx context.Context, region string) (*awsS3.Client, error) {
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return nil, fmt.Errorf("unable to recreate AWS client for region %s: %v", region, err)
+	}
+	return awsS3.NewFromConfig(cfg), nil
+}
+
+// detectBucketRegion queries S3 for the bucket's region using GetBucketLocation.
+// It returns an AWS region string like "us-west-2". If the region cannot be
+// determined, returns empty string and an error.
+func detectBucketRegion(ctx context.Context, s3Client *awsS3.Client, bucket string) (string, error) {
+	out, err := s3Client.GetBucketLocation(ctx, &awsS3.GetBucketLocationInput{Bucket: &bucket})
+	if err != nil {
+		return "", fmt.Errorf("failed to get bucket location: %v", err)
+	}
+
+	// AWS returns an empty LocationConstraint for us-east-1
+	if out.LocationConstraint == "" || string(out.LocationConstraint) == "" {
+		return "us-east-1", nil
+	}
+
+	return string(out.LocationConstraint), nil
+}
+
 // Get all the directory from the bucket, check if the directory
 // name contains the service name.
 func ValidateS3BucketExists(ctx context.Context, s3Client *awsS3.Client, targetBucket string,
@@ -84,7 +134,29 @@ func ValidateS3BucketExists(ctx context.Context, s3Client *awsS3.Client, targetB
 		Delimiter: aws.String("/"), // treat "/" as directory separator
 	})
 	if err != nil {
-		return false, fmt.Errorf("unable to retrieve service from S3: %v", err)
+		// Try to detect bucket region directly and retry with that region
+		if region, rerr := detectBucketRegion(ctx, s3Client, targetBucket); rerr == nil && region != "" {
+			newClient, cerr := rebuildS3ClientWithRegion(ctx, region)
+			if cerr != nil {
+				return false, cerr
+			}
+			result, err = newClient.ListObjectsV2(ctx, &awsS3.ListObjectsV2Input{Bucket: &targetBucket, Delimiter: aws.String("/")})
+			if err != nil {
+				return false, fmt.Errorf("unable to retrieve service from S3 after region retry: %v", err)
+			}
+		} else if region, ok := attemptExtractRegion(err); ok {
+			// Fallback to earlier heuristic if GetBucketLocation failed
+			newClient, cerr := rebuildS3ClientWithRegion(ctx, region)
+			if cerr != nil {
+				return false, cerr
+			}
+			result, err = newClient.ListObjectsV2(ctx, &awsS3.ListObjectsV2Input{Bucket: &targetBucket, Delimiter: aws.String("/")})
+			if err != nil {
+				return false, fmt.Errorf("unable to retrieve service from S3 after region retry: %v", err)
+			}
+		} else {
+			return false, fmt.Errorf("unable to retrieve service from S3: %v", err)
+		}
 	}
 
 	var serviceDirectoryFound bool = false
@@ -110,7 +182,27 @@ func GetFileFromBucket(ctx context.Context, s3Client *awsS3.Client, targetBucket
 		Prefix: aws.String(serviceName + "/"),
 	})
 	if err != nil {
-		return "", fmt.Errorf("unable to retrieve backup files from S3: %v", err)
+		if region, rerr := detectBucketRegion(ctx, s3Client, targetBucket); rerr == nil && region != "" {
+			newClient, cerr := rebuildS3ClientWithRegion(ctx, region)
+			if cerr != nil {
+				return "", cerr
+			}
+			backups, err = newClient.ListObjectsV2(ctx, &awsS3.ListObjectsV2Input{Bucket: &targetBucket, Prefix: aws.String(serviceName + "/")})
+			if err != nil {
+				return "", fmt.Errorf("unable to retrieve backup files from S3 after region retry: %v", err)
+			}
+		} else if region, ok := attemptExtractRegion(err); ok {
+			newClient, cerr := rebuildS3ClientWithRegion(ctx, region)
+			if cerr != nil {
+				return "", cerr
+			}
+			backups, err = newClient.ListObjectsV2(ctx, &awsS3.ListObjectsV2Input{Bucket: &targetBucket, Prefix: aws.String(serviceName + "/")})
+			if err != nil {
+				return "", fmt.Errorf("unable to retrieve backup files from S3 after region retry: %v", err)
+			}
+		} else {
+			return "", fmt.Errorf("unable to retrieve backup files from S3: %v", err)
+		}
 
 	}
 
@@ -166,7 +258,27 @@ func S3DownloadToMemory(ctx context.Context, s3Client *awsS3.Client, targetBucke
 		Key:    &backupFilename,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to download backup file from S3: %v", err)
+		if region, rerr := detectBucketRegion(ctx, s3Client, targetBucket); rerr == nil && region != "" {
+			newClient, cerr := rebuildS3ClientWithRegion(ctx, region)
+			if cerr != nil {
+				return nil, cerr
+			}
+			downloadedBackup, err = newClient.GetObject(ctx, &awsS3.GetObjectInput{Bucket: &targetBucket, Key: &backupFilename})
+			if err != nil {
+				return nil, fmt.Errorf("unable to download backup file from S3 after region retry: %v", err)
+			}
+		} else if region, ok := attemptExtractRegion(err); ok {
+			newClient, cerr := rebuildS3ClientWithRegion(ctx, region)
+			if cerr != nil {
+				return nil, cerr
+			}
+			downloadedBackup, err = newClient.GetObject(ctx, &awsS3.GetObjectInput{Bucket: &targetBucket, Key: &backupFilename})
+			if err != nil {
+				return nil, fmt.Errorf("unable to download backup file from S3 after region retry: %v", err)
+			}
+		} else {
+			return nil, fmt.Errorf("unable to download backup file from S3: %v", err)
+		}
 	}
 	defer downloadedBackup.Body.Close()
 
