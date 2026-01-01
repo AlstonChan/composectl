@@ -78,20 +78,84 @@ func GetS3BackupStoreBucket(ctx context.Context, s3Client *awsS3.Client,
 
 // attemptExtractRegion searches common AWS error messages for a region hint
 // and returns it when found.
+
+// awsRegions is a set of known AWS regions used to validate extracted candidates.
+var awsRegions = map[string]struct{}{
+	// Africa
+	"af-south-1": {},
+
+	// Asia Pacific
+	"ap-east-1":      {},
+	"ap-northeast-1": {},
+	"ap-northeast-2": {},
+	"ap-northeast-3": {},
+	"ap-south-1":     {},
+	"ap-south-2":     {},
+	"ap-southeast-1": {},
+	"ap-southeast-2": {},
+	"ap-southeast-3": {},
+	"ap-southeast-4": {},
+	"ap-southeast-5": {},
+	"ap-southeast-6": {},
+	"ap-southeast-7": {},
+
+	// Europe
+	"eu-central-1": {},
+	"eu-central-2": {},
+	"eu-north-1":   {},
+	"eu-south-1":   {},
+	"eu-south-2":   {},
+	"eu-west-1":    {},
+	"eu-west-2":    {},
+	"eu-west-3":    {},
+
+	// Middle East
+	"me-central-1": {},
+	"me-south-1":   {},
+	"il-central-1": {},
+
+	// North America
+	"ca-central-1": {},
+	"ca-west-1":    {},
+	"us-east-1":    {},
+	"us-east-2":    {},
+	"us-west-1":    {},
+	"us-west-2":    {},
+	"mx-central-1": {},
+
+	// South America
+	"sa-east-1": {},
+
+	// AWS GovCloud (US)
+	"us-gov-east-1": {},
+	"us-gov-west-1": {},
+
+	// AWS China
+	"cn-north-1":     {},
+	"cn-northwest-1": {},
+}
+
+// isValidAWSRegion returns true if the given string is a known AWS region identifier.
+func isValidAWSRegion(region string) bool {
+	_, ok := awsRegions[region]
+	return ok
+}
+
 func attemptExtractRegion(err error) (string, bool) {
 	if err == nil {
 		return "", false
 	}
+
 	// Example message contains: "Please send all future requests to this region: us-west-2"
-	// Match only valid-looking AWS region identifiers (e.g. us-west-2, ap-southeast-1)
-	re := regexp.MustCompile(`to this region: ([a-z]{2}-[a-z0-9-]+-\d+)`)
-	if m := re.FindStringSubmatch(err.Error()); len(m) >= 2 {
+	// Extract a candidate token and then validate it against the known region list.
+	re := regexp.MustCompile(`to this region:\s*([a-z0-9-]+)`)
+	if m := re.FindStringSubmatch(err.Error()); len(m) >= 2 && isValidAWSRegion(m[1]) {
 		return m[1], true
 	}
 
-	// Some errors might include 'region: us-west-2' or similar
-	re2 := regexp.MustCompile(`region[:\s]+([a-z]{2}-[a-z0-9-]+-\d+)`)
-	if m := re2.FindStringSubmatch(err.Error()); len(m) >= 2 {
+	// Some errors might include 'region: us-west-2' or similar.
+	re2 := regexp.MustCompile(`region[:\s]+([a-z0-9-]+)`)
+	if m := re2.FindStringSubmatch(err.Error()); len(m) >= 2 && isValidAWSRegion(m[1]) {
 		return m[1], true
 	}
 
