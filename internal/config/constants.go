@@ -24,5 +24,6 @@ const (
 
 	SopsAgeKeyFileEnv = "SOPS_AGE_KEY_FILE"
 
-	RequireComposeMajor = 5
+	DockerComposeMajorVersion = 5
+	DockerBuildxMajorVersion  = 0
 )
