@@ -293,6 +293,31 @@ func S3DownloadToMemory(ctx context.Context, s3Client *awsS3.Client, targetBucke
 	return fileData, nil
 }
 
+// EnsureClientForBucket attempts to detect the bucket's region and returns
+// a client configured for that region. If the region cannot be detected,
+// the original client is returned with no error.
+func EnsureClientForBucket(ctx context.Context, s3Client *awsS3.Client, bucket string) (*awsS3.Client, error) {
+	region, err := detectBucketRegion(ctx, s3Client, bucket)
+	if err != nil {
+		// Could not determine region; return original client and let callers
+		// proceed — existing helper functions already retry on errors.
+		return s3Client, nil
+	}
+
+	if region == "" {
+		return s3Client, nil
+	}
+
+	// Recreate client for the detected region and return it.
+	newClient, err := rebuildS3ClientWithRegion(ctx, region)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create S3 client for detected region %s: %v", region, err)
+	}
+
+	fmt.Printf("Using S3 client region %s for bucket %s\n", region, bucket)
+	return newClient, nil
+}
+
 func PromptSelectS3Bucket(s3Client *awsS3.Client, ctx context.Context) (string, error) {
 	bucketList, err := s3Client.ListBuckets(ctx, &awsS3.ListBucketsInput{})
 	if err != nil {

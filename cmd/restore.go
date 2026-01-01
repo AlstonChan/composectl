@@ -168,6 +168,14 @@ var restoreCmd = &cobra.Command{
 					return
 				}
 
+				// Ensure the S3 client is configured for the bucket's region (may return
+				// the same client if detection fails or region matches).
+				s3Client, err = services.EnsureClientForBucket(ctx, s3Client, s3Bucket)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "Error ensuring S3 client region:", err)
+					return
+				}
+
 				bucketExists, err := services.ValidateS3BucketExists(ctx, s3Client, s3Bucket, name)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
