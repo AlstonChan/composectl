@@ -23,4 +23,6 @@ const (
 	ConfigDirEnv      = "COMPOSECTL_LOCAL"
 
 	SopsAgeKeyFileEnv = "SOPS_AGE_KEY_FILE"
+
+	RequireComposeMajor = 5
 )

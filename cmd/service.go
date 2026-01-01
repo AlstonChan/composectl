@@ -53,7 +53,7 @@ var serviceCmd = &cobra.Command{
 			return
 		}
 
-		if err := deps.CheckDockerDeps(0, 2); err != nil {
+		if err := deps.CheckDockerDeps(0, config.RequireComposeMajor); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
 			return
 		}

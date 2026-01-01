@@ -79,7 +79,7 @@ var restoreCmd = &cobra.Command{
 		}
 		var dateToRestoreAfter = time.Now().AddDate(0, 0, -dayOffset+1)
 
-		dockerClient, err := deps.GetDockerClient(0, 5)
+		dockerClient, err := deps.GetDockerClient(0, config.RequireComposeMajor)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
 			return
