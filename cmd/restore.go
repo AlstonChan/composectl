@@ -84,6 +84,7 @@ var restoreCmd = &cobra.Command{
 			fmt.Fprintln(os.Stderr, "Error:", err)
 			return
 		}
+		defer dockerClient.Close()
 
 		if repoPath == "" {
 			services.CreateLocalCacheDir(os.Getenv(config.ConfigDirEnv))
