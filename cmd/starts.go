@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/AlstonChan/composectl/internal/config"
 	"github.com/AlstonChan/composectl/internal/deps"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +34,7 @@ var startsCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if err := deps.CheckDockerDeps(0, 2); err != nil {
+		if err := deps.CheckDockerDeps(0, config.RequireComposeMajor); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
 			os.Exit(1)
 		}
